@@ -383,7 +383,7 @@ function Layout:RefreshBarStyles()
             for i = 1, (group.framesShown or 0) do
                 local frame = rawget(group, i)
                 if frame and frame.texture and frame.texture.pathPrefix then
-                    frame.texture:SetTexture(frame.texture.pathPrefix .. style)
+                    frame.texture:SetTexture(ns.FrameFactory.ResolvePath((frame.texture.pathPrefix or "") .. tostring(style)))
                 end
             end
         end

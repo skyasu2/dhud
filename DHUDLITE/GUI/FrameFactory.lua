@@ -30,7 +30,7 @@ function FrameFactory:CreateTextureFrame(name, parent, pointThis, pointParent, o
     layer = layer or "BACKGROUND"
     local frame = self:CreateFrame(name, parent, pointThis, pointParent, offX, offY, w, h)
     local info = Textures.list[textureName]
-    local path = info[1]
+    local path = self.ResolvePath(info[1])
     local x0, x1, y0, y1 = info[2], info[3], info[4], info[5]
     if mirror then
         x0, x1 = x1, x0
@@ -49,7 +49,7 @@ function FrameFactory:CreateBarFrame(name, parent, pointThis, pointParent, offX,
     local frame, texture = self:CreateTextureFrame(name, parent, pointThis, pointParent, offX, offY, w, h, textureName, mirror)
     local style = ns.Settings:Get("barsTexture")
     texture.pathPrefix = Textures.list[textureName][1]
-    texture:SetTexture(texture.pathPrefix .. style)
+    texture:SetTexture(self.ResolvePath((texture.pathPrefix or "") .. tostring(style or 1)))
     texture:ClearAllPoints()
     texture:SetPoint("CENTER", frame, "CENTER", 0, 0)
     return frame, texture
@@ -177,4 +177,12 @@ function FrameFactory:CreateDynamicGroup(groupName, createFunc, limit)
     end
     self.frameGroups[groupName] = group
     return group
+end
+-- Helper: resolve texture path, appending .tga for addon art assets
+function FrameFactory.ResolvePath(path)
+    if type(path) ~= "string" then return path end
+    if path:find("Interface\\AddOns\\DHUDLITE\\art\\", 1, true) and not path:match("%.[%a%d]+$") then
+        return path .. ".tga"
+    end
+    return path
 end
