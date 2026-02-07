@@ -1,13 +1,8 @@
 # Claude Code local settings
 .claude/
 
-# Internal development notes
-DHUD/internal_*.txt
-
-# Debug modules
-DHUD/DHUD_Debug.lua
-DHUD/DHUD_DebugOA.lua
-DHUD/DHUD_WoWAddonStudio.lua
+# Original DHUD source (reference only, not for distribution)
+DHUD/
 
 # OS generated
 .DS_Store
