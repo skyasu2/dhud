@@ -1,0 +1,33 @@
+## Author: Based on DHUD by MADCAT, Markus Inger (Drathal/Silberklinge), Howie (Caeryn)
+## Interface: 120000
+## Title: DHUD Lite
+## Notes: Lightweight Head-Up Display for WoW 12.0.0 with Secret Values support
+## Version: 1.0.0
+## SavedVariables: DHUDLITE_DB
+## IconTexture: Interface\Icons\ACHIEVEMENT_GUILDPERK_QUICK AND DEAD
+
+Core.lua
+Settings.lua
+Data/TrackerHelper.lua
+Data/HealthTracker.lua
+Data/PowerTracker.lua
+Data/CastTracker.lua
+Data/ComboTracker.lua
+Data/UnitInfoTracker.lua
+GUI/Textures.lua
+GUI/FrameFactory.lua
+GUI/Colorize.lua
+GUI/TextFormat.lua
+GUI/BarRenderer.lua
+GUI/CastBarRenderer.lua
+GUI/EllipseMath.lua
+GUI/Layout.lua
+Slots/SlotBase.lua
+Slots/BarSlot.lua
+Slots/CastBarSlot.lua
+Slots/ResourceSlot.lua
+Slots/UnitInfoSlot.lua
+Slots/IconSlot.lua
+AlphaManager.lua
+HUDManager.lua
+Main.lua
