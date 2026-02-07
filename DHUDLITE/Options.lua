@@ -123,6 +123,88 @@ local function CreateSettingsPanel()
             semi:SetChecked(false); normal:SetChecked(true)
         end
     end)
+
+    -- Slot assignment dropdowns
+    local slotLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    slotLabel:SetPoint("TOPLEFT", 16, y - 96)
+    slotLabel:SetText("Slots (assign tracker)")
+
+    local choices = {
+        { value = "",             text = "(empty)" },
+        { value = "playerHealth", text = "Player Health" },
+        { value = "playerPower",  text = "Player Power" },
+        { value = "targetHealth", text = "Target Health" },
+        { value = "targetPower",  text = "Target Power" },
+        { value = "totHealth",    text = "ToT Health" },
+        { value = "totPower",     text = "ToT Power" },
+        { value = "petHealth",    text = "Pet Health" },
+        { value = "petPower",     text = "Pet Power" },
+    }
+
+    local function makeDropdown(slotKey, labelText, col, row)
+        local dd = CreateFrame("Frame", "DHUDLITE_DD_" .. slotKey, panel, "UIDropDownMenuTemplate")
+        local x = 16 + (col - 1) * 260
+        local yoff = -140 - (row - 1) * 40
+        dd:SetPoint("TOPLEFT",  x, yoff)
+        local lbl = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        lbl:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 16, 0)
+        lbl:SetText(labelText)
+
+        UIDropDownMenu_SetWidth(dd, 180)
+
+        UIDropDownMenu_Initialize(dd, function(self, level)
+            for _, c in ipairs(choices) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = c.text
+                info.func = function()
+                    UIDropDownMenu_SetSelectedValue(dd, c.value)
+                    ns.Settings:Set(slotKey, c.value)
+                    if ns.HUDManager and ns.HUDManager.RebuildSlot then ns.HUDManager:RebuildSlot(slotKey) end
+                    if ns.Layout and ns.Layout.RefreshBackgrounds then ns.Layout:RefreshBackgrounds() end
+                end
+                info.value = c.value
+                info.checked = (ns.Settings:Get(slotKey) or "") == c.value
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+
+        -- Update selection text
+        local cur = ns.Settings:Get(slotKey) or ""
+        UIDropDownMenu_SetSelectedValue(dd, cur)
+        for _, c in ipairs(choices) do
+            if c.value == cur then UIDropDownMenu_SetText(dd, c.text) break end
+        end
+        return dd
+    end
+
+    -- Two columns: left slots and right slots
+    local dd1 = makeDropdown("leftBig1",   "Left Big 1", 1, 1)
+    local dd2 = makeDropdown("leftBig2",   "Left Big 2", 1, 2)
+    local dd3 = makeDropdown("leftSmall1", "Left Small 1", 1, 3)
+    local dd4 = makeDropdown("leftSmall2", "Left Small 2", 1, 4)
+    local dd5 = makeDropdown("rightBig1",   "Right Big 1", 2, 1)
+    local dd6 = makeDropdown("rightBig2",   "Right Big 2", 2, 2)
+    local dd7 = makeDropdown("rightSmall1", "Right Small 1", 2, 3)
+    local dd8 = makeDropdown("rightSmall2", "Right Small 2", 2, 4)
+
+    -- Refresh dropdown selections when panel shows
+    local function refreshDD(dd, key)
+        local val = ns.Settings:Get(key) or ""
+        UIDropDownMenu_SetSelectedValue(dd, val)
+        for _, c in ipairs(choices) do
+            if c.value == val then UIDropDownMenu_SetText(dd, c.text) break end
+        end
+    end
+    panel:HookScript("OnShow", function()
+        refreshDD(dd1, "leftBig1")
+        refreshDD(dd2, "leftBig2")
+        refreshDD(dd3, "leftSmall1")
+        refreshDD(dd4, "leftSmall2")
+        refreshDD(dd5, "rightBig1")
+        refreshDD(dd6, "rightBig2")
+        refreshDD(dd7, "rightSmall1")
+        refreshDD(dd8, "rightSmall2")
+    end)
 end
 
 local f = CreateFrame("Frame")

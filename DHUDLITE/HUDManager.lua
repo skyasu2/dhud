@@ -198,6 +198,18 @@ function HUDManager:Init()
         end
     end)
 
+    -- Listen for slot assignment changes and rebuild affected slots
+    local function watchSlot(key)
+        Settings:OnChange(key, self, function()
+            self:RebuildSlot(key)
+            Layout:RefreshBackgrounds()
+        end)
+    end
+    local slotKeys = { "leftBig1","leftBig2","leftSmall1","leftSmall2","rightBig1","rightBig2","rightSmall1","rightSmall2" }
+    for _, k in ipairs(slotKeys) do watchSlot(k) end
+    Settings:OnChange("leftCastBar", self, function() self:RebuildCastSlot("left") end)
+    Settings:OnChange("rightCastBar", self, function() self:RebuildCastSlot("right") end)
+
     -- Activate all slots
     self:ActivateAll()
 end
@@ -271,4 +283,34 @@ function HUDManager:OnTargetOfTargetChanged()
             end
         end
     end
+end
+
+-- Rebuild a specific bar slot when its setting changes
+function HUDManager:RebuildSlot(slotName)
+    -- Deactivate and clear old slot
+    local old = barSlots[slotName]
+    if old then
+        old:Deactivate()
+        barSlots[slotName] = nil
+    end
+    -- Create new slot with current setting
+    local slot = SetupBarSlot(slotName)
+    if slot then
+        barSlots[slotName] = slot
+        slot:Activate()
+    else
+        -- Ensure group's textures are hidden if no slot assigned
+        local group = Layout:GetBarGroup(slotName)
+        if group and group.SetFramesShown then group:SetFramesShown(0) end
+        local textFrame = Layout:GetTextFrame(slotName)
+        if textFrame and textFrame.textField and textFrame.textField.DSetText then textFrame.textField:DSetText("") end
+    end
+end
+
+-- Rebuild the cast bar slot for a side
+function HUDManager:RebuildCastSlot(side)
+    local old = castBarSlots[side]
+    if old then old:Deactivate() end
+    castBarSlots[side] = SetupCastBarSlot(side)
+    if castBarSlots[side] then castBarSlots[side]:Activate() end
 end
