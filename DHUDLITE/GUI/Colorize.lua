@@ -96,11 +96,32 @@ function Colorize:GetPowerColor(powerType, unitId)
             return self:HexToRGB(hexTable[1])
         end
     end
-    -- Fallback: get from API
-    if not PowerBarColor then return 1, 1, 1 end
-    local info = PowerBarColor[powerType]
-    if info then
-        return info.r or 1, info.g or 1, info.b or 1
+    -- Prefer official APIs for retail 11.0+: C_PowerBarColor / GetPowerBarColor
+    if _G.C_PowerBarColor and _G.C_PowerBarColor.GetPowerBarColor then
+        local c = _G.C_PowerBarColor.GetPowerBarColor(powerType)
+        if c then
+            if type(c) == "table" then
+                if c.r and c.g and c.b then return c.r, c.g, c.b end
+            elseif type(c) == "number" then
+                -- Some variants may return packed color; ignore
+            end
+        end
+    end
+    if _G.GetPowerBarColor then
+        local _, token = UnitPowerType(unitId or "player")
+        if token then
+            local r, g, b = _G.GetPowerBarColor(token)
+            if r and g and b then return r, g, b end
+        end
+        local r, g, b = _G.GetPowerBarColor(powerType)
+        if r and g and b then return r, g, b end
+    end
+    -- Fallback to global table
+    if _G.PowerBarColor then
+        local info = _G.PowerBarColor[powerType]
+        if info then
+            return info.r or 1, info.g or 1, info.b or 1
+        end
     end
     return 1, 1, 1
 end

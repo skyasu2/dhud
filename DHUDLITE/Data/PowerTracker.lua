@@ -55,18 +55,18 @@ function PowerTracker:StopTracking()
 end
 
 function PowerTracker:UpdatePowerType()
-    if self.forcedPowerType then
-        self.resourceType = self.forcedPowerType
+    local id, token
+    if self.forcedPowerType ~= nil then
+        id = self.forcedPowerType
+        -- Try to get current token anyway for coloring/text
+        local _, t = UnitPowerType(self.unitId)
+        token = t
     else
-        self.resourceType = UnitPowerType(self.unitId) or 0
+        id, token = UnitPowerType(self.unitId)
     end
-    -- Map power type to string
-    local POWER_STRINGS = {
-        [0] = "MANA", [1] = "RAGE", [2] = "FOCUS", [3] = "ENERGY",
-        [6] = "RUNIC_POWER", [8] = "LUNAR_POWER", [11] = "MAELSTROM",
-        [13] = "INSANITY", [17] = "FURY", [18] = "PAIN",
-    }
-    self.resourceTypeString = POWER_STRINGS[self.resourceType] or "MANA"
+    if not id then id = 0 end
+    self.resourceType = id
+    self.resourceTypeString = token or ""
     self.events:Fire("ResourceTypeChanged")
 end
 
