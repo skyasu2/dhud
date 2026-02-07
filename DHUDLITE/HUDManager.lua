@@ -182,11 +182,8 @@ function HUDManager:Init()
     -- Setup icon slot
     iconSlot = SetupIconSlot()
 
-    -- Update backgrounds
-    local leftMask = CalculateBgMask("left")
-    local rightMask = CalculateBgMask("right")
-    Layout:UpdateBackground("left", leftMask)
-    Layout:UpdateBackground("right", rightMask)
+    -- Apply backgrounds based on settings
+    Layout:RefreshBackgrounds()
 
     -- Listen for target changes to start/stop target trackers
     TrackerHelper.events:On("TargetChanged", self, self.OnTargetChanged)

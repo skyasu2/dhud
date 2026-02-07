@@ -116,6 +116,9 @@ function Layout:CreateFrames()
     ns.Settings:OnChange("barsTexture", self, function(_, key, value)
         self:RefreshBarStyles()
     end)
+    ns.Settings:OnChange("showBackground", self, function()
+        self:RefreshBackgrounds()
+    end)
 end
 
 function Layout:CreateBackgroundTexture(side)
@@ -317,6 +320,27 @@ function Layout:SetAlpha(alpha)
     if root then
         root:SetAlpha(alpha)
     end
+end
+
+-- Recalculate and apply backgrounds based on current settings
+function Layout:RefreshBackgrounds()
+    local Settings = ns.Settings
+    local function maskFor(side)
+        local mask = 0
+        if (Settings:Get(side .. "Big1") or "") ~= "" then mask = mask + 1 end
+        if (Settings:Get(side .. "Big2") or "") ~= "" then mask = mask + 2 end
+        if (Settings:Get(side .. "Small1") or "") ~= "" then mask = mask + 4 end
+        if (Settings:Get(side .. "Small2") or "") ~= "" then mask = mask + 8 end
+        return mask
+    end
+    local leftMask = maskFor("left")
+    local rightMask = maskFor("right")
+    if Settings:Get("showBackground") then
+        if leftMask == 0 then leftMask = 1 end
+        if rightMask == 0 then rightMask = 2 end
+    end
+    self:UpdateBackground("left", leftMask)
+    self:UpdateBackground("right", rightMask)
 end
 
 -- Update left/right bar background offsets from center

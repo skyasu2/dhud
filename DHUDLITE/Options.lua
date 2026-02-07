@@ -30,6 +30,99 @@ local function CreateSettingsPanel()
     local category = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
     category.ID = "DHUDLITE"
     Settings.RegisterAddOnCategory(category)
+
+    -- Build simple interactive controls
+    local y = -64
+
+    -- Distance slider
+    local slider = CreateFrame("Slider", "DHUDLITE_DistanceSlider", panel, "OptionsSliderTemplate")
+    slider:SetPoint("TOPLEFT", 16, y)
+    slider:SetMinMaxValues(0, 150)
+    slider:SetValueStep(5)
+    if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
+    _G[slider:GetName() .. "Low"]:SetText("0")
+    _G[slider:GetName() .. "High"]:SetText("150")
+    _G[slider:GetName() .. "Text"]:SetText("Bar Half-Distance")
+
+    slider:SetScript("OnValueChanged", function(self, val)
+        val = math.floor(val + 0.5)
+        ns.Settings:Set("barsDistanceDiv2", val)
+        if ns.Layout and ns.Layout.SetBarsDistance then
+            ns.Layout:SetBarsDistance(val)
+        end
+    end)
+
+    y = y - 60
+
+    -- Background toggle
+    local bg = CreateFrame("CheckButton", "DHUDLITE_ShowBackground", panel, "UICheckButtonTemplate")
+    bg:SetPoint("TOPLEFT", 16, y)
+    bg.text:SetText("Show Background Mask (empty slots)")
+    bg:SetScript("OnClick", function(self)
+        ns.Settings:Set("showBackground", self:GetChecked() and true or false)
+        if ns.Layout and ns.Layout.RefreshBackgrounds then ns.Layout:RefreshBackgrounds() end
+    end)
+
+    -- Style radios
+    local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    styleLabel:SetPoint("TOPLEFT", 16, y - 28)
+    styleLabel:SetText("Bar Style")
+    local radios = {}
+    local prev
+    for i = 1, 5 do
+        local rb = CreateFrame("CheckButton", "DHUDLITE_Style_" .. i, panel, "UIRadioButtonTemplate")
+        if i == 1 then
+            rb:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", 0, -6)
+        else
+            rb:SetPoint("LEFT", prev, "RIGHT", 40, 0)
+        end
+        _G[rb:GetName() .. "Text"]:SetText(tostring(i))
+        rb:SetScript("OnClick", function(self)
+            for j = 1, 5 do
+                _G["DHUDLITE_Style_" .. j]:SetChecked(j == i)
+            end
+            ns.Settings:Set("barsTexture", i)
+            if ns.Layout and ns.Layout.RefreshBarStyles then ns.Layout:RefreshBarStyles() end
+        end)
+        radios[i] = rb
+        prev = rb
+    end
+
+    -- Cast frequency radios
+    local cfLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    cfLabel:SetPoint("TOPLEFT", 16, y - 64)
+    cfLabel:SetText("Cast Update Rate")
+    local semi = CreateFrame("CheckButton", "DHUDLITE_CastRate_Semi", panel, "UIRadioButtonTemplate")
+    semi:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -6)
+    _G[semi:GetName() .. "Text"]:SetText("semi (~45ms)")
+    local normal = CreateFrame("CheckButton", "DHUDLITE_CastRate_Normal", panel, "UIRadioButtonTemplate")
+    normal:SetPoint("LEFT", semi, "RIGHT", 120, 0)
+    _G[normal:GetName() .. "Text"]:SetText("normal (~95ms)")
+    local function setCastRate(val)
+        ns.Settings:Set("castUpdateRate", val)
+        if val == "semi" then
+            semi:SetChecked(true); normal:SetChecked(false)
+        else
+            semi:SetChecked(false); normal:SetChecked(true)
+        end
+    end
+    semi:SetScript("OnClick", function() setCastRate("semi") end)
+    normal:SetScript("OnClick", function() setCastRate("normal") end)
+
+    -- Refresh control values when panel shows
+    panel:SetScript("OnShow", function()
+        local dist = ns.Settings:Get("barsDistanceDiv2") or 0
+        slider:SetValue(dist)
+        bg:SetChecked(ns.Settings:Get("showBackground") and true or false)
+        local st = ns.Settings:Get("barsTexture") or 1
+        for i = 1, 5 do radios[i]:SetChecked(i == st) end
+        local cr = ns.Settings:Get("castUpdateRate") or "semi"
+        if cr == "semi" then
+            semi:SetChecked(true); normal:SetChecked(false)
+        else
+            semi:SetChecked(false); normal:SetChecked(true)
+        end
+    end)
 end
 
 local f = CreateFrame("Frame")
@@ -37,4 +130,3 @@ f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
     CreateSettingsPanel()
 end)
-
