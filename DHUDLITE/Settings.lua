@@ -91,10 +91,8 @@ local defaults = {
     -- Cast bars
     leftCastBar = "player",
     rightCastBar = "target",
-    -- Resources
-    showComboPoints = true,
-    showDKRunes = true,
-    showClassResources = true,
+    -- Resources (클래스 리소스 표시)
+    showResources = true,
     -- Icons
     showPvPIcon = true,
     showCombatIcon = true,
@@ -123,6 +121,12 @@ function Settings:Init()
             else
                 db[k] = v
             end
+        end
+    end
+    -- Migrate legacy resource flags to unified showResources
+    if db.showResources ~= nil then
+        if db.showComboPoints == false and db.showDKRunes == false and db.showClassResources == false then
+            db.showResources = false
         end
     end
 end

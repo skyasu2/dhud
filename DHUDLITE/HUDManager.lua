@@ -115,7 +115,7 @@ local function SetupCastBarSlot(side)
 end
 
 local function SetupResourceSlot()
-    if not Settings:Get("showComboPoints") and not Settings:Get("showDKRunes") and not Settings:Get("showClassResources") then
+    if not Settings:Get("showResources") then
         return nil
     end
 

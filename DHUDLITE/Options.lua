@@ -121,6 +121,20 @@ local function BuildControls(panel)
     semi:SetScript("OnClick", function() setCastRate("semi") end)
     normal:SetScript("OnClick", function() setCastRate("normal") end)
 
+    -- Show class resources toggle (merge of multiple flags)
+    local res = CreateFrame("CheckButton", "DHUDLITE_ShowResources", content, "UICheckButtonTemplate")
+    res:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -28)
+    local resText = _G[res:GetName() .. "Text"] or res.Text
+    if resText then resText:SetText("Show Class Resources (Combo/Runes/Etc)") end
+    res:SetScript("OnClick", function(self)
+        ns.Settings:Set("showResources", self:GetChecked() and true or false)
+        if ns.HUDManager and ns.HUDManager.DeactivateAll then
+            -- Rebuild HUD to apply resource slot on the fly
+            ns.HUDManager:DeactivateAll()
+            ns.HUDManager:Init()
+        end
+    end)
+
     -- Refresh control values when panel shows
     panel:HookScript("OnShow", function()
         -- Ensure scrollframe updates
@@ -135,11 +149,12 @@ local function BuildControls(panel)
         else
             semi:SetChecked(false); normal:SetChecked(true)
         end
+        res:SetChecked(ns.Settings:Get("showResources") and true or false)
     end)
 
     -- Slot assignment dropdowns
     local slotLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    slotLabel:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -42)
+    slotLabel:SetPoint("TOPLEFT", res, "BOTTOMLEFT", 0, -24)
     slotLabel:SetText("Slots (assign tracker)")
 
     local choices = {
