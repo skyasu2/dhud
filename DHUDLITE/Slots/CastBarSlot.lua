@@ -11,6 +11,7 @@ function CastBarSlot:New(side)
     o.side = side
     o.renderer = nil
     o.unitId = (side == "left") and "player" or "target"
+    o.updateEvent = nil
     return o
 end
 
@@ -33,7 +34,7 @@ function CastBarSlot:Activate()
 end
 
 function CastBarSlot:Deactivate()
-    ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
+    self:Unsubscribe()
     if self.tracker then
         self.tracker:StopTracking()
     end
@@ -71,13 +72,13 @@ function CastBarSlot:OnCastChanged()
     self.renderer:ShowCast(t)
     self:UpdateCastFill()
 
-    -- Subscribe to semi-frequent updates for progress (throttled ~45ms)
-    ns.TrackerHelper.events:On("UpdateSemiFrequent", self, self.UpdateCastFill)
+    -- Subscribe to updates for progress, per setting
+    self:Subscribe()
 end
 
 function CastBarSlot:UpdateCastFill()
     if not self.isActive or not self.tracker then
-        ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
+        self:Unsubscribe()
         return
     end
 
@@ -85,7 +86,7 @@ function CastBarSlot:UpdateCastFill()
     local state = t.state
 
     if state == CT.STATE_NONE or state == CT.STATE_INTERRUPTED or state == CT.STATE_SUCCEEDED then
-        ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
+        self:Unsubscribe()
         return
     end
 
@@ -109,4 +110,35 @@ function CastBarSlot:UpdateCastFill()
 
     self.renderer:UpdateFill(pct, r, g, b)
     self.renderer:UpdateTexts(t)
+end
+
+-- Internal: subscribe/unsubscribe to update cadence based on settings
+function CastBarSlot:GetDesiredEvent()
+    local rate = ns.Settings:Get("castUpdateRate")
+    if rate == "normal" then
+        return "Update" -- ~95ms
+    else
+        return "UpdateSemiFrequent" -- ~45ms (default)
+    end
+end
+
+function CastBarSlot:Subscribe()
+    local desired = self:GetDesiredEvent()
+    if self.updateEvent == desired then return end
+    self:Unsubscribe()
+    ns.TrackerHelper.events:On(desired, self, self.UpdateCastFill)
+    self.updateEvent = desired
+end
+
+function CastBarSlot:Unsubscribe()
+    if self.updateEvent then
+        ns.TrackerHelper.events:Off(self.updateEvent, self, self.UpdateCastFill)
+        self.updateEvent = nil
+    end
+end
+
+-- Public: resubscribe when settings change
+function CastBarSlot:Resubscribe()
+    if not self.isActive then return end
+    self:Subscribe()
 end

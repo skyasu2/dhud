@@ -24,7 +24,7 @@ function bootFrame:PLAYER_ENTERING_WORLD()
     -- Initialize alpha state machine
     ns.AlphaManager:Init()
 
-    ns.Print("v1.0.0 loaded. /dhudlite for commands.")
+    ns.Print("v1.0.1 loaded. /dhudlite for commands.")
 end
 
 -- Slash commands
@@ -47,11 +47,20 @@ SlashCmdList["DHUDLITE"] = function(msg)
     elseif msg == "alpha" then
         ns.AlphaManager:Refresh()
         ns.Print("Alpha refreshed.")
+    elseif msg:match("^castfreq ") then
+        local arg = msg:match("^castfreq%s+(%S+)") or ""
+        if arg == "semi" or arg == "normal" then
+            ns.Settings:Set("castUpdateRate", arg)
+            ns.Print("Cast update rate set to: " .. arg)
+        else
+            ns.Print("Usage: /dhudlite castfreq <semi|normal>")
+        end
     else
         ns.Print("Commands:")
         ns.Print("  /dhudlite reset - Reset all settings and reload")
         ns.Print("  /dhudlite show - Force HUD visible")
         ns.Print("  /dhudlite hide - Hide HUD")
         ns.Print("  /dhudlite alpha - Refresh alpha state")
+        ns.Print("  /dhudlite castfreq <semi|normal> - Set cast update rate")
     end
 end

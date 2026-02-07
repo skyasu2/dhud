@@ -191,6 +191,13 @@ function HUDManager:Init()
     -- Listen for target changes to start/stop target trackers
     TrackerHelper.events:On("TargetChanged", self, self.OnTargetChanged)
 
+    -- Listen for cast update rate changes and resubscribe
+    Settings:OnChange("castUpdateRate", self, function()
+        for _, slot in pairs(castBarSlots) do
+            if slot and slot.Resubscribe then slot:Resubscribe() end
+        end
+    end)
+
     -- Activate all slots
     self:ActivateAll()
 end

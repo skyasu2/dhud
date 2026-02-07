@@ -26,6 +26,8 @@ local defaults = {
     -- Scale
     scaleMain = 1.0,
     scaleResources = 1.0,
+    -- Update cadence for cast bar ("semi" ~45ms, "normal" ~95ms)
+    castUpdateRate = "semi",
     -- Font sizes
     fontSizeBars = 10,
     fontSizeInfo = 10,
