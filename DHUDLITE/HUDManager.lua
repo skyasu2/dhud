@@ -190,6 +190,7 @@ function HUDManager:Init()
     -- Listen for target changes to start/stop target trackers
     TrackerHelper.events:On("TargetChanged", self, self.OnTargetChanged)
     TrackerHelper.events:On("TargetOfTargetChanged", self, self.OnTargetOfTargetChanged)
+    TrackerHelper.events:On("Update", self, self.OnRangeUpdate)
 
     -- Listen for cast update rate changes and resubscribe
     Settings:OnChange("castUpdateRate", self, function()
@@ -283,6 +284,21 @@ function HUDManager:OnTargetOfTargetChanged()
             end
         end
     end
+end
+
+local function IsTargetInRange()
+    if not UnitExists("target") then return true end
+    -- Use interact distance 28yd for generic range check
+    local ok = CheckInteractDistance("target", 4)
+    if ok == 1 or ok == true then return true end
+    return false
+end
+
+function HUDManager:OnRangeUpdate()
+    if not ns.Settings:Get("rangeFade") then return end
+    local inRange = IsTargetInRange()
+    local a = inRange and 1 or (ns.Settings:Get("rangeFadeAlpha") or 0.35)
+    Layout:SetSideAlpha("right", a)
 end
 
 -- Rebuild a specific bar slot when its setting changes

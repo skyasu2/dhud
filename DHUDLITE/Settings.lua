@@ -39,6 +39,9 @@ local defaults = {
     textFormatPower = "value+percent",
     -- Threat coloring for target health bars
     threatColoring = true,
+    -- Range fade for target side
+    rangeFade = true,
+    rangeFadeAlpha = 0.35,
     -- Health bar layers
     showHealthShield = true,
     showHealthShieldOverMax = true,

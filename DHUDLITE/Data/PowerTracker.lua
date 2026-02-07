@@ -6,6 +6,7 @@ ns.PowerTracker = PowerTracker
 function PowerTracker:New(unitId, powerType)
     local o = PowerTracker.__index.New(self)
     o.unitId = unitId
+    o.baseUnitId = unitId
     o.forcedPowerType = powerType -- nil = auto-detect display power
     o.amount = 0
     o.amountMax = 1
@@ -43,6 +44,9 @@ function PowerTracker:StartTracking()
 
     self:UpdatePowerType()
     self:UpdateAllData()
+
+    -- React to vehicle/player caster unit changes
+    ns.TrackerHelper.events:On("VehicleChanged", self, self.OnVehicleChanged)
 end
 
 function PowerTracker:StopTracking()
@@ -52,6 +56,7 @@ function PowerTracker:StopTracking()
     ef:UnregisterEvent("UNIT_POWER_UPDATE")
     ef:UnregisterEvent("UNIT_MAXPOWER")
     ef:UnregisterEvent("UNIT_DISPLAYPOWER")
+    ns.TrackerHelper.events:Off("VehicleChanged", self, self.OnVehicleChanged)
 end
 
 function PowerTracker:UpdatePowerType()
@@ -68,6 +73,15 @@ function PowerTracker:UpdatePowerType()
     self.resourceType = id
     self.resourceTypeString = token or ""
     self.events:Fire("ResourceTypeChanged")
+end
+
+function PowerTracker:OnVehicleChanged()
+    if self.baseUnitId == "player" then
+        local caster = ns.TrackerHelper.playerCasterUnitId or "player"
+        self.unitId = caster
+        self:UpdatePowerType()
+        self:UpdateAllData()
+    end
 end
 
 function PowerTracker:UpdatePower()

@@ -336,6 +336,19 @@ function Layout:SetAlpha(alpha)
     end
 end
 
+-- Set alpha for a side's bar background group independently (multiplies with root alpha)
+function Layout:SetSideAlpha(side, alpha)
+    local frame
+    if side == "left" then
+        frame = FF.frames["DHUDLITE_Left_BarsBackground"]
+    else
+        frame = FF.frames["DHUDLITE_Right_BarsBackground"]
+    end
+    if frame then
+        frame:SetAlpha(alpha or 1)
+    end
+end
+
 -- Recalculate and apply backgrounds based on current settings
 function Layout:RefreshBackgrounds()
     local Settings = ns.Settings

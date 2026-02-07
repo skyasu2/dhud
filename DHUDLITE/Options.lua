@@ -121,9 +121,57 @@ local function BuildControls(panel)
     semi:SetScript("OnClick", function() setCastRate("semi") end)
     normal:SetScript("OnClick", function() setCastRate("normal") end)
 
+    -- Threat coloring toggle
+    local threat = CreateFrame("CheckButton", "DHUDLITE_ThreatColor", content, "UICheckButtonTemplate")
+    threat:SetPoint("TOPLEFT", normal, "BOTTOMLEFT", -16, -12)
+    local thText = _G[threat:GetName() .. "Text"] or threat.Text
+    if thText then thText:SetText("Threat Coloring (Target Health)") end
+    threat:SetScript("OnClick", function(self)
+        ns.Settings:Set("threatColoring", self:GetChecked() and true or false)
+    end)
+
+    -- Text format dropdowns
+    local function makeFmtDD(key, label, rel)
+        local dd = CreateFrame("Frame", "DHUDLITE_TF_" .. key, content, "UIDropDownMenuTemplate")
+        dd:SetPoint("TOPLEFT", rel, "BOTTOMLEFT", -16, -8)
+        local lbl = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        lbl:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 16, 0)
+        lbl:SetText(label)
+        local opts = {
+            { v = "value+percent", t = "Value + Percent" },
+            { v = "value", t = "Value" },
+            { v = "percent", t = "Percent" },
+            { v = "deficit", t = "Deficit" },
+            { v = "none", t = "None" },
+        }
+        UIDropDownMenu_SetWidth(dd, 180)
+        UIDropDownMenu_Initialize(dd, function()
+            for _, o in ipairs(opts) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = o.t
+                info.func = function()
+                    UIDropDownMenu_SetSelectedValue(dd, o.v)
+                    ns.Settings:Set(key, o.v)
+                end
+                info.value = o.v
+                info.checked = (ns.Settings:Get(key) == o.v)
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+        content:HookScript("OnShow", function()
+            local cur = ns.Settings:Get(key)
+            UIDropDownMenu_SetSelectedValue(dd, cur)
+            for _, o in ipairs(opts) do if o.v == cur then UIDropDownMenu_SetText(dd, o.t) end end
+        end)
+        return dd
+    end
+
+    local tfHealth = makeFmtDD("textFormatHealth", "Health Text", threat)
+    local tfPower  = makeFmtDD("textFormatPower",  "Power Text",  tfHealth)
+
     -- Show class resources toggle (merge of multiple flags)
     local res = CreateFrame("CheckButton", "DHUDLITE_ShowResources", content, "UICheckButtonTemplate")
-    res:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -28)
+    res:SetPoint("TOPLEFT", tfPower, "BOTTOMLEFT", 16, -18)
     local resText = _G[res:GetName() .. "Text"] or res.Text
     if resText then resText:SetText("Show Class Resources (Combo/Runes/Etc)") end
     res:SetScript("OnClick", function(self)
@@ -149,6 +197,7 @@ local function BuildControls(panel)
         else
             semi:SetChecked(false); normal:SetChecked(true)
         end
+        threat:SetChecked(ns.Settings:Get("threatColoring") and true or false)
         res:SetChecked(ns.Settings:Get("showResources") and true or false)
     end)
 
