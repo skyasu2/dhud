@@ -65,6 +65,16 @@ SlashCmdList["DHUDLITE"] = function(msg)
         else
             ns.Print("Usage: /dhudlite style <1-5>")
         end
+    elseif msg:match("^bg ") then
+        local arg = msg:match("^bg%s+(%S+)") or ""
+        if arg == "on" or arg == "off" then
+            local v = (arg == "on")
+            ns.Settings:Set("showBackground", v)
+            if ns.Layout and ns.Layout.RefreshBackgrounds then ns.Layout:RefreshBackgrounds() end
+            ns.Print("Background mask: " .. (v and "on" or "off"))
+        else
+            ns.Print("Usage: /dhudlite bg <on|off>")
+        end
     elseif msg:match("^castfreq ") then
         local arg = msg:match("^castfreq%s+(%S+)") or ""
         if arg == "semi" or arg == "normal" then
@@ -73,14 +83,23 @@ SlashCmdList["DHUDLITE"] = function(msg)
         else
             ns.Print("Usage: /dhudlite castfreq <semi|normal>")
         end
+    elseif msg == "debug" then
+        local hp, hpmax = UnitHealth("player"), UnitHealthMax("player")
+        local ptype = UnitPowerType("player")
+        local pp, ppmax = UnitPower("player", ptype), UnitPowerMax("player", ptype)
+        ns.Print(string.format("HP %d/%d (%.1f%%)", hp or 0, hpmax or 0, (hpmax and hp and hpmax>0) and (hp*100.0/hpmax) or 0))
+        ns.Print(string.format("Power type %s val %d/%d", tostring(ptype), pp or 0, ppmax or 0))
+        ns.Print(string.format("Distance %d, Style %d, BG %s", ns.Settings:Get("barsDistanceDiv2") or 0, ns.Settings:Get("barsTexture") or 1, tostring(ns.Settings:Get("showBackground"))))
     else
         ns.Print("Commands:")
         ns.Print("  /dhudlite reset - Reset all settings and reload")
         ns.Print("  /dhudlite show - Force HUD visible")
         ns.Print("  /dhudlite hide - Hide HUD")
         ns.Print("  /dhudlite alpha - Refresh alpha state")
+        ns.Print("  /dhudlite bg <on|off> - Toggle background mask")
         ns.Print("  /dhudlite distance <num> - Set half-distance between bars")
         ns.Print("  /dhudlite style <1-5> - Set bar texture style")
         ns.Print("  /dhudlite castfreq <semi|normal> - Set cast update rate")
+        ns.Print("  /dhudlite debug - Print quick diagnostics")
     end
 end
