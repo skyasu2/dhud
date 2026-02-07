@@ -126,6 +126,8 @@ SlashCmdList["DHUDLITE"] = function(msg)
         else
             ns.Print("Usage: /dhudlite preset fill")
         end
+    elseif msg == "options" or msg == "opt" then
+        if ns.OpenOptions then ns.OpenOptions() else ns.Print("Open Options -> AddOns manually.") end
     elseif msg == "debug" then
         local hp, hpmax = UnitHealth("player"), UnitHealthMax("player")
         local ptype = UnitPowerType("player")
@@ -147,6 +149,7 @@ SlashCmdList["DHUDLITE"] = function(msg)
         ns.Print("  /dhudlite distance <num> - Set half-distance between bars")
         ns.Print("  /dhudlite style <1-5> - Set bar texture style")
         ns.Print("  /dhudlite castfreq <semi|normal> - Set cast update rate")
+        ns.Print("  /dhudlite options - Open options panel")
         ns.Print("  /dhudlite preset fill - Assign ToT to right small bars")
         ns.Print("  /dhudlite debug - Print quick diagnostics")
     end

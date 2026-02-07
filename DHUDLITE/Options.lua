@@ -1,9 +1,13 @@
 local ADDON_NAME, ns = ...
 
--- Minimal settings panel so the addon appears in ESC -> Options -> AddOns
-local function CreateSettingsPanel()
-    local panel = CreateFrame("Frame")
-    panel:Hide()
+local settingsCategory -- new Settings API category
+local legacyPanel -- legacy InterfaceOptions panel
+local built = false
+
+-- Build UI controls lazily to avoid load-order issues
+local function BuildControls(panel)
+    if built then return end
+    built = true
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -23,14 +27,6 @@ local function CreateSettingsPanel()
         "현재 버전: v" .. (GetAddOnMetadata(ADDON_NAME, "Version") or "")
     ))
 
-    -- New settings system (Dragonflight+)
-    if Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
-        category.ID = "DHUDLITE"
-        Settings.RegisterAddOnCategory(category)
-    end
-
-    -- Build simple interactive controls
     local y = -64
 
     -- Distance slider
@@ -110,7 +106,7 @@ local function CreateSettingsPanel()
     normal:SetScript("OnClick", function() setCastRate("normal") end)
 
     -- Refresh control values when panel shows
-    panel:SetScript("OnShow", function()
+    panel:HookScript("OnShow", function()
         local dist = ns.Settings:Get("barsDistanceDiv2") or 0
         slider:SetValue(dist)
         bg:SetChecked(ns.Settings:Get("showBackground") and true or false)
@@ -207,17 +203,49 @@ local function CreateSettingsPanel()
     end)
 end
 
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()
-    CreateSettingsPanel()
-    -- Legacy options frame fallback (older clients or if Settings UI not available)
-    if not (Settings and Settings.RegisterCanvasLayoutCategory) and InterfaceOptions_AddCategory then
-        local legacy = CreateFrame("Frame", nil, UIParent)
-        legacy.name = "DHUD Lite"
-        InterfaceOptions_AddCategory(legacy)
+-- Register categories (new and legacy) and show helpful messages
+local function RegisterCategories()
+    local panel = CreateFrame("Frame")
+    panel:Hide()
+
+    -- New settings system (Dragonflight+)
+    if _G.Settings and _G.Settings.RegisterCanvasLayoutCategory then
+        settingsCategory = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
+        settingsCategory.ID = "DHUDLITE"
+        Settings.RegisterAddOnCategory(settingsCategory)
     end
+
+    -- Legacy options frame fallback (older clients or if Settings UI not available)
+    if _G.InterfaceOptions_AddCategory then
+        legacyPanel = CreateFrame("Frame", nil, UIParent)
+        legacyPanel.name = "DHUD Lite"
+        InterfaceOptions_AddCategory(legacyPanel)
+    end
+
+    -- Build controls on demand
+    panel:HookScript("OnShow", function()
+        BuildControls(panel)
+    end)
+
     if ns and ns.Print then
         ns.Print("Settings registered. Open ESC -> Options -> AddOns (or Interface -> AddOns)")
     end
+end
+
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_LOGIN")
+f:SetScript("OnEvent", function()
+    RegisterCategories()
 end)
+
+-- Public helper to open options programmatically
+ns.OpenOptions = function()
+    if _G.Settings and _G.Settings.OpenToCategory and settingsCategory then
+        Settings.OpenToCategory(settingsCategory.ID)
+    elseif _G.InterfaceOptionsFrame_OpenToCategory and legacyPanel then
+        InterfaceOptionsFrame_OpenToCategory(legacyPanel)
+        InterfaceOptionsFrame_OpenToCategory(legacyPanel) -- call twice per Blizzard quirk
+    else
+        if ns and ns.Print then ns.Print("Open Options -> AddOns manually.") end
+    end
+end
