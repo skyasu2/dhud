@@ -18,11 +18,21 @@ local function BuildControls(panel)
     if built then return end
     built = true
 
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    -- Create ScrollFrame to handle overflowing content
+    local scrollFrame = CreateFrame("ScrollFrame", "DHUDLITE_OptionsScrollFrame", panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 0, -10)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
+
+    -- Create Content Frame (Child)
+    local content = CreateFrame("Frame", nil, scrollFrame)
+    content:SetSize(scrollFrame:GetWidth(), 550) -- Initial approximate height, can be increased
+    scrollFrame:SetScrollChild(content)
+
+    local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("DHUD Lite")
 
-    local desc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    local desc = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     desc:SetJustifyH("LEFT")
     desc:SetWidth(700)
@@ -36,14 +46,13 @@ local function BuildControls(panel)
         "현재 버전: v" .. (GetMeta(ADDON_NAME, "Version") or "")
     ))
 
-    local y = -64
-
     -- Distance slider
-    local slider = CreateFrame("Slider", "DHUDLITE_DistanceSlider", panel, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", 16, y)
+    local slider = CreateFrame("Slider", "DHUDLITE_DistanceSlider", content, "OptionsSliderTemplate")
+    slider:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -30) -- Increased spacing slightly
     slider:SetMinMaxValues(0, 150)
     slider:SetValueStep(5)
-    if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
+    slider:SetObeyStepOnDrag(true)
+    slider:EnableMouse(true) -- Explicitly ensure input
     _G[slider:GetName() .. "Low"]:SetText("0")
     _G[slider:GetName() .. "High"]:SetText("150")
     _G[slider:GetName() .. "Text"]:SetText("Bar Half-Distance")
@@ -56,11 +65,9 @@ local function BuildControls(panel)
         end
     end)
 
-    y = y - 60
-
     -- Background toggle
-    local bg = CreateFrame("CheckButton", "DHUDLITE_ShowBackground", panel, "UICheckButtonTemplate")
-    bg:SetPoint("TOPLEFT", 16, y)
+    local bg = CreateFrame("CheckButton", "DHUDLITE_ShowBackground", content, "UICheckButtonTemplate")
+    bg:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -24)
     local bgText = _G[bg:GetName() .. "Text"] or bg.Text
     if bgText then bgText:SetText("Show Background Mask (empty slots)") end
     bg:SetScript("OnClick", function(self)
@@ -69,13 +76,13 @@ local function BuildControls(panel)
     end)
 
     -- Style radios
-    local styleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    styleLabel:SetPoint("TOPLEFT", 16, y - 28)
+    local styleLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    styleLabel:SetPoint("TOPLEFT", bg, "BOTTOMLEFT", 0, -16)
     styleLabel:SetText("Bar Style")
     local radios = {}
     local prev
     for i = 1, 5 do
-        local rb = CreateFrame("CheckButton", "DHUDLITE_Style_" .. i, panel, "UIRadioButtonTemplate")
+        local rb = CreateFrame("CheckButton", "DHUDLITE_Style_" .. i, content, "UIRadioButtonTemplate")
         if i == 1 then
             rb:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", 0, -6)
         else
@@ -94,13 +101,13 @@ local function BuildControls(panel)
     end
 
     -- Cast frequency radios
-    local cfLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    cfLabel:SetPoint("TOPLEFT", 16, y - 64)
+    local cfLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    cfLabel:SetPoint("TOPLEFT", styleLabel, "BOTTOMLEFT", 0, -42) -- Spacing after radio buttons line
     cfLabel:SetText("Cast Update Rate")
-    local semi = CreateFrame("CheckButton", "DHUDLITE_CastRate_Semi", panel, "UIRadioButtonTemplate")
+    local semi = CreateFrame("CheckButton", "DHUDLITE_CastRate_Semi", content, "UIRadioButtonTemplate")
     semi:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -6)
     _G[semi:GetName() .. "Text"]:SetText("semi (~45ms)")
-    local normal = CreateFrame("CheckButton", "DHUDLITE_CastRate_Normal", panel, "UIRadioButtonTemplate")
+    local normal = CreateFrame("CheckButton", "DHUDLITE_CastRate_Normal", content, "UIRadioButtonTemplate")
     normal:SetPoint("LEFT", semi, "RIGHT", 120, 0)
     _G[normal:GetName() .. "Text"]:SetText("normal (~95ms)")
     local function setCastRate(val)
@@ -116,6 +123,7 @@ local function BuildControls(panel)
 
     -- Refresh control values when panel shows
     panel:HookScript("OnShow", function()
+        -- Ensure scrollframe updates
         local dist = ns.Settings:Get("barsDistanceDiv2") or 0
         slider:SetValue(dist)
         bg:SetChecked(ns.Settings:Get("showBackground") and true or false)
@@ -130,8 +138,8 @@ local function BuildControls(panel)
     end)
 
     -- Slot assignment dropdowns
-    local slotLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    slotLabel:SetPoint("TOPLEFT", 16, y - 96)
+    local slotLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    slotLabel:SetPoint("TOPLEFT", cfLabel, "BOTTOMLEFT", 0, -42)
     slotLabel:SetText("Slots (assign tracker)")
 
     local choices = {
@@ -146,12 +154,11 @@ local function BuildControls(panel)
         { value = "petPower",     text = "Pet Power" },
     }
 
-    local function makeDropdown(slotKey, labelText, col, row)
-        local dd = CreateFrame("Frame", "DHUDLITE_DD_" .. slotKey, panel, "UIDropDownMenuTemplate")
-        local x = 16 + (col - 1) * 260
-        local yoff = -140 - (row - 1) * 40
-        dd:SetPoint("TOPLEFT",  x, yoff)
-        local lbl = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    local function makeDropdown(slotKey, labelText, anchorFrame, xOff, yOff)
+        local dd = CreateFrame("Frame", "DHUDLITE_DD_" .. slotKey, content, "UIDropDownMenuTemplate")
+        dd:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", xOff, yOff)
+        
+        local lbl = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         lbl:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 16, 0)
         lbl:SetText(labelText)
 
@@ -183,14 +190,22 @@ local function BuildControls(panel)
     end
 
     -- Two columns: left slots and right slots
-    local dd1 = makeDropdown("leftBig1",   "Left Big 1", 1, 1)
-    local dd2 = makeDropdown("leftBig2",   "Left Big 2", 1, 2)
-    local dd3 = makeDropdown("leftSmall1", "Left Small 1", 1, 3)
-    local dd4 = makeDropdown("leftSmall2", "Left Small 2", 1, 4)
-    local dd5 = makeDropdown("rightBig1",   "Right Big 1", 2, 1)
-    local dd6 = makeDropdown("rightBig2",   "Right Big 2", 2, 2)
-    local dd7 = makeDropdown("rightSmall1", "Right Small 1", 2, 3)
-    local dd8 = makeDropdown("rightSmall2", "Right Small 2", 2, 4)
+    -- Column 1
+    local col1X = 0
+    local col2X = 260
+    local rowHeight = -40
+    local startY = -20 -- below slotLabel
+
+    local dd1 = makeDropdown("leftBig1",   "Left Big 1",   slotLabel, col1X, startY)
+    local dd2 = makeDropdown("leftBig2",   "Left Big 2",   dd1,       0,     rowHeight) -- Relative to dd1
+    local dd3 = makeDropdown("leftSmall1", "Left Small 1", dd2,       0,     rowHeight)
+    local dd4 = makeDropdown("leftSmall2", "Left Small 2", dd3,       0,     rowHeight)
+    
+    -- Column 2
+    local dd5 = makeDropdown("rightBig1",   "Right Big 1",   slotLabel, col2X, startY)
+    local dd6 = makeDropdown("rightBig2",   "Right Big 2",   dd5,       0,     rowHeight) -- Relative to dd5
+    local dd7 = makeDropdown("rightSmall1", "Right Small 1", dd6,       0,     rowHeight)
+    local dd8 = makeDropdown("rightSmall2", "Right Small 2", dd7,       0,     rowHeight)
 
     -- Refresh dropdown selections when panel shows
     local function refreshDD(dd, key)
@@ -217,7 +232,7 @@ local function RegisterCategories()
     local panel = CreateFrame("Frame")
     panel.name = "DHUD Lite"
     panel:Hide()
-
+    
     -- New settings system (Dragonflight+)
     if _G.Settings and _G.Settings.RegisterCanvasLayoutCategory then
         settingsCategory = _G.Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
