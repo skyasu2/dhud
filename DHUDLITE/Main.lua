@@ -83,6 +83,49 @@ SlashCmdList["DHUDLITE"] = function(msg)
         else
             ns.Print("Usage: /dhudlite castfreq <semi|normal>")
         end
+    elseif msg:match("^move ") then
+        local arg = msg:match("^move%s+(%S+)") or ""
+        if arg == "on" or arg == "off" then
+            ns.Layout:SetMovable(arg == "on")
+            ns.Print("Move mode: " .. arg)
+        else
+            ns.Print("Usage: /dhudlite move <on|off>")
+        end
+    elseif msg == "resetpos" then
+        ns.Layout:ResetPosition()
+        ns.Print("Position reset.")
+    elseif msg:match("^fontsize ") then
+        local which, num = msg:match("^fontsize%s+(%S+)%s+(%d+)")
+        local n = tonumber(num)
+        if which and n then
+            if which == "bars" then ns.Settings:Set("fontSizeBars", n)
+            elseif which == "info" then ns.Settings:Set("fontSizeInfo", n)
+            elseif which == "cast" then ns.Settings:Set("fontSizeCast", n)
+            else ns.Print("Usage: /dhudlite fontsize <bars|info|cast> <num>"); return end
+            if ns.Layout and ns.Layout.RefreshFonts then ns.Layout:RefreshFonts() end
+            ns.Print("Font size updated: " .. which .. "=" .. n)
+        else
+            ns.Print("Usage: /dhudlite fontsize <bars|info|cast> <num>")
+        end
+    elseif msg:match("^outline ") then
+        local num = tonumber((msg:match("^outline%s+(%S+)")))
+        if num and num >= 0 and num <= 2 then
+            ns.Settings:Set("fontOutline", num)
+            if ns.Layout and ns.Layout.RefreshFonts then ns.Layout:RefreshFonts() end
+            ns.Print("Font outline set to: " .. num)
+        else
+            ns.Print("Usage: /dhudlite outline <0|1|2>")
+        end
+    elseif msg:match("^preset ") then
+        local which = msg:match("^preset%s+(%S+)") or ""
+        if which == "fill" then
+            ns.Settings:Set("rightSmall1", "totHealth")
+            ns.Settings:Set("rightSmall2", "totPower")
+            if ns.Layout and ns.Layout.RefreshBackgrounds then ns.Layout:RefreshBackgrounds() end
+            ns.Print("Preset applied: fill ToT on right small bars")
+        else
+            ns.Print("Usage: /dhudlite preset fill")
+        end
     elseif msg == "debug" then
         local hp, hpmax = UnitHealth("player"), UnitHealthMax("player")
         local ptype = UnitPowerType("player")
@@ -97,9 +140,14 @@ SlashCmdList["DHUDLITE"] = function(msg)
         ns.Print("  /dhudlite hide - Hide HUD")
         ns.Print("  /dhudlite alpha - Refresh alpha state")
         ns.Print("  /dhudlite bg <on|off> - Toggle background mask")
+        ns.Print("  /dhudlite move <on|off> - Toggle move mode")
+        ns.Print("  /dhudlite resetpos - Reset HUD position")
+        ns.Print("  /dhudlite fontsize <bars|info|cast> <num> - Set font size")
+        ns.Print("  /dhudlite outline <0|1|2> - Set font outline")
         ns.Print("  /dhudlite distance <num> - Set half-distance between bars")
         ns.Print("  /dhudlite style <1-5> - Set bar texture style")
         ns.Print("  /dhudlite castfreq <semi|normal> - Set cast update rate")
+        ns.Print("  /dhudlite preset fill - Assign ToT to right small bars")
         ns.Print("  /dhudlite debug - Print quick diagnostics")
     end
 end

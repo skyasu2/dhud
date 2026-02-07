@@ -24,6 +24,8 @@ local TRACKER_MAP = {
     targetPower  = { unitId = "target", barType = "power" },
     petHealth    = { unitId = "pet",    barType = "health" },
     petPower     = { unitId = "pet",    barType = "power" },
+    totHealth    = { unitId = "targettarget", barType = "health" },
+    totPower     = { unitId = "targettarget", barType = "power" },
 }
 
 local function GetOrCreateTracker(key)
@@ -187,6 +189,7 @@ function HUDManager:Init()
 
     -- Listen for target changes to start/stop target trackers
     TrackerHelper.events:On("TargetChanged", self, self.OnTargetChanged)
+    TrackerHelper.events:On("TargetOfTargetChanged", self, self.OnTargetOfTargetChanged)
 
     -- Listen for cast update rate changes and resubscribe
     Settings:OnChange("castUpdateRate", self, function()
@@ -245,6 +248,25 @@ function HUDManager:OnTargetChanged()
                 end
                 if tracker.UpdateAllData then
                     tracker:UpdateAllData()
+                end
+            end
+        end
+    end
+end
+
+function HUDManager:OnTargetOfTargetChanged()
+    for key, tracker in pairs(trackers) do
+        if tracker.unitId == "targettarget" then
+            if TrackerHelper.isTargetOfTargetAvailable then
+                if tracker.StartTracking and not tracker.isTracking then
+                    tracker:StartTracking()
+                end
+                if tracker.UpdateAllData then
+                    tracker:UpdateAllData()
+                end
+            else
+                if tracker.isTracking and tracker.StopTracking then
+                    tracker:StopTracking()
                 end
             end
         end

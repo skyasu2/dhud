@@ -17,6 +17,8 @@ function Layout:CreateFrames()
     -- Root frame
     local root = FF:CreateFrame("DHUDLITE_UIParent", UIParent, "CENTER", "CENTER", 0, 0, BAR_WIDTH * 2 + 100, BAR_HEIGHT, "BACKGROUND")
     root:SetScale(scale)
+    -- Store reference
+    self.root = root
 
     -- Left bars background
     local leftBg = FF:CreateFrame("DHUDLITE_Left_BarsBackground", "DHUDLITE_UIParent", "RIGHT", "CENTER", -dist, 0, BAR_WIDTH, BAR_HEIGHT)
@@ -118,6 +120,18 @@ function Layout:CreateFrames()
     end)
     ns.Settings:OnChange("showBackground", self, function()
         self:RefreshBackgrounds()
+    end)
+    ns.Settings:OnChange("fontOutline", self, function()
+        self:RefreshFonts()
+    end)
+    ns.Settings:OnChange("fontSizeBars", self, function()
+        self:RefreshFonts()
+    end)
+    ns.Settings:OnChange("fontSizeInfo", self, function()
+        self:RefreshFonts()
+    end)
+    ns.Settings:OnChange("fontSizeCast", self, function()
+        self:RefreshFonts()
     end)
 end
 
@@ -374,4 +388,74 @@ function Layout:RefreshBarStyles()
             end
         end
     end
+end
+
+-- Update fonts for known text elements
+function Layout:RefreshFonts()
+    local outline = ns.Textures.FONT_OUTLINES[(ns.Settings:Get("fontOutline") or 0) + 1] or ""
+    local fontBars = ns.Textures.fonts["numeric"]
+    local sizeBars = ns.Settings:Get("fontSizeBars") or 10
+    local sizeInfo = ns.Settings:Get("fontSizeInfo") or 10
+    local sizeCast = ns.Settings:Get("fontSizeCast") or 10
+    local function set(fs, size)
+        if fs and fs.SetFont then fs:SetFont(fontBars, size, outline) end
+    end
+    -- Bar values
+    if self.leftBig1Text then set(self.leftBig1Text.textField, sizeBars) end
+    if self.leftBig2Text then set(self.leftBig2Text.textField, sizeBars) end
+    if self.leftSmall1Text then set(self.leftSmall1Text.textField, sizeBars) end
+    if self.leftSmall2Text then set(self.leftSmall2Text.textField, sizeBars) end
+    if self.rightBig1Text then set(self.rightBig1Text.textField, sizeBars) end
+    if self.rightBig2Text then set(self.rightBig2Text.textField, sizeBars) end
+    if self.rightSmall1Text then set(self.rightSmall1Text.textField, sizeBars) end
+    if self.rightSmall2Text then set(self.rightSmall2Text.textField, sizeBars) end
+    -- Center info
+    if self.centerText1 then set(self.centerText1.textField, sizeInfo) end
+    if self.centerText2 then set(self.centerText2.textField, sizeInfo) end
+    -- Cast bars
+    if self.leftCastFrames then
+        local _, _, _, nameF, timeF, delayF = unpack(self.leftCastFrames)
+        if nameF and nameF.textField then set(nameF.textField, sizeCast) end
+        if timeF and timeF.textField then set(timeF.textField, sizeCast) end
+        if delayF and delayF.textField then set(delayF.textField, sizeCast) end
+    end
+    if self.rightCastFrames then
+        local _, _, _, nameF, timeF, delayF = unpack(self.rightCastFrames)
+        if nameF and nameF.textField then set(nameF.textField, sizeCast) end
+        if timeF and timeF.textField then set(timeF.textField, sizeCast) end
+        if delayF and delayF.textField then set(delayF.textField, sizeCast) end
+    end
+end
+
+-- Toggle drag/move mode for the root frame
+function Layout:SetMovable(enabled)
+    local root = self.root or FF.frames["DHUDLITE_UIParent"]
+    if not root then return end
+    root:EnableMouse(enabled and true or false)
+    root:SetMovable(enabled and true or false)
+    if enabled then
+        root:RegisterForDrag("LeftButton")
+        root:SetScript("OnDragStart", function(f) f:StartMoving() end)
+        root:SetScript("OnDragStop", function(f) f:StopMovingOrSizing() end)
+        -- overlay
+        if not self.moveOverlay then
+            local ov = root:CreateTexture(nil, "OVERLAY")
+            ov:SetAllPoints(true)
+            ov:SetColorTexture(0, 1, 0, 0.1)
+            self.moveOverlay = ov
+        end
+        self.moveOverlay:Show()
+    else
+        root:RegisterForDrag()
+        root:SetScript("OnDragStart", nil)
+        root:SetScript("OnDragStop", nil)
+        if self.moveOverlay then self.moveOverlay:Hide() end
+    end
+end
+
+function Layout:ResetPosition()
+    local root = self.root or FF.frames["DHUDLITE_UIParent"]
+    if not root then return end
+    root:ClearAllPoints()
+    root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 end
