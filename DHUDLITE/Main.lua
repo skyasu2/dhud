@@ -31,7 +31,8 @@ end
 SLASH_DHUDLITE1 = "/dhudlite"
 SLASH_DHUDLITE2 = "/dhud"
 SlashCmdList["DHUDLITE"] = function(msg)
-    msg = (msg or ""):lower():trim()
+    -- Use WoW API helpers; Lua strings have no :trim()
+    msg = strlower(strtrim(msg or ""))
 
     if msg == "reset" then
         DHUDLITE_DB = nil
