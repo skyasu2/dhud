@@ -206,13 +206,15 @@ end
 -- Register categories (new and legacy) and show helpful messages
 local function RegisterCategories()
     local panel = CreateFrame("Frame")
+    panel.name = "DHUD Lite"
     panel:Hide()
 
     -- New settings system (Dragonflight+)
     if _G.Settings and _G.Settings.RegisterCanvasLayoutCategory then
-        settingsCategory = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
+        settingsCategory = _G.Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
         settingsCategory.ID = "DHUDLITE"
-        Settings.RegisterAddOnCategory(settingsCategory)
+        _G.Settings.RegisterAddOnCategory(settingsCategory)
+        if ns and ns.Print then ns.Print("Options: registered Settings category") end
     end
 
     -- Legacy options frame fallback (older clients or if Settings UI not available)
@@ -220,6 +222,7 @@ local function RegisterCategories()
         legacyPanel = CreateFrame("Frame", nil, UIParent)
         legacyPanel.name = "DHUD Lite"
         InterfaceOptions_AddCategory(legacyPanel)
+        if ns and ns.Print then ns.Print("Options: registered legacy InterfaceOptions category") end
     end
 
     -- Build controls on demand
@@ -241,7 +244,7 @@ end)
 -- Public helper to open options programmatically
 ns.OpenOptions = function()
     if _G.Settings and _G.Settings.OpenToCategory and settingsCategory then
-        Settings.OpenToCategory(settingsCategory.ID)
+        _G.Settings.OpenToCategory(settingsCategory.ID)
     elseif _G.InterfaceOptionsFrame_OpenToCategory and legacyPanel then
         InterfaceOptionsFrame_OpenToCategory(legacyPanel)
         InterfaceOptionsFrame_OpenToCategory(legacyPanel) -- call twice per Blizzard quirk
