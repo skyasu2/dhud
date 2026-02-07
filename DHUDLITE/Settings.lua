@@ -84,10 +84,10 @@ local defaults = {
     colorReactionNotTapped = "cccccc",
     -- Slot assignments: which data tracker for which slot
     leftBig1 = "playerHealth",
-    leftBig2 = "playerPower",
+    leftBig2 = "targetHealth",
     leftSmall1 = "",
     leftSmall2 = "",
-    rightBig1 = "targetHealth",
+    rightBig1 = "playerPower",
     rightBig2 = "targetPower",
     rightSmall1 = "totHealth",
     rightSmall2 = "totPower",

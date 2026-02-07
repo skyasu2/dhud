@@ -101,8 +101,9 @@ function ResourceSlot:UpdateComboPoints()
 
     if not self.isPositioned then
         local scale = ns.Settings:Get("scaleResources") or 1.0
+        -- Place combo/resource bubbles on the right side to align with player power
         EllipseMath:PositionFramesAlongArc(self.comboFrames, countMax, 20, scale,
-            EllipseMath.HUD_BAR_WIDTH, 5, true)
+            EllipseMath.HUD_BAR_WIDTH, 5, false)
         self.isPositioned = true
     end
 
@@ -143,8 +144,9 @@ function ResourceSlot:UpdateRunes()
     -- Position rune frames if needed
     if not self.isPositioned then
         local scale = ns.Settings:Get("scaleResources") or 1.0
+        -- Place runes on the right side as well
         EllipseMath:PositionFramesAlongArc(self.runeFrames, 6, 30, scale,
-            EllipseMath.HUD_BAR_WIDTH, 5, true)
+            EllipseMath.HUD_BAR_WIDTH, 5, false)
         self.isPositioned = true
     end
 
