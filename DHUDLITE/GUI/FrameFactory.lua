@@ -63,7 +63,15 @@ function FrameFactory:CreateCastBarFrame(name, parent, pointThis, pointParent, o
 end
 
 function FrameFactory:CreateCastBarIconFrame(name, parent, pointThis, pointParent, offX, offY, w, h)
-    local frame = self:CreateFrame(name, parent, pointThis, pointParent, offX, offY, w, h, nil, "Button")
+    -- Use a simple Frame to avoid button taint. Provide a SetNormalTexture shim for compatibility.
+    local frame = self:CreateFrame(name, parent, pointThis, pointParent, offX, offY, w, h, nil, "Frame")
+    -- Icon texture (fills the frame)
+    local icon = frame:CreateTexture(name and (name .. "_icon") or nil, "ARTWORK", nil, 6)
+    icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    icon:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    icon:SetTexture("Interface\\Icons\\Ability_Druid_TravelForm")
+    frame.icon = icon
+    -- Shield/border overlay
     local info = Textures.list["BlizzardCastBarIconShield"]
     local texturePath, x0, x1, y0, y1 = info[1], info[2], info[3], info[4], info[5]
     local scaleX, scaleY = w / 20, h / 20
@@ -75,7 +83,10 @@ function FrameFactory:CreateCastBarIconFrame(name, parent, pointThis, pointParen
     border:SetHeight(44 * scaleY)
     border:SetTexCoord(x0, x1, y0, y1)
     frame.border = border
-    frame:SetNormalTexture("Interface\\Icons\\Ability_Druid_TravelForm")
+    -- Back-compat: mimic Button:SetNormalTexture so existing code keeps working
+    frame.SetNormalTexture = function(self, tex)
+        if self.icon then self.icon:SetTexture(tex) end
+    end
     return frame
 end
 

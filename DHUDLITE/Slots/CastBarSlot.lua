@@ -33,7 +33,7 @@ function CastBarSlot:Activate()
 end
 
 function CastBarSlot:Deactivate()
-    ns.TrackerHelper.events:Off("UpdateFrequent", self, self.UpdateCastFill)
+    ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
     if self.tracker then
         self.tracker:StopTracking()
     end
@@ -71,13 +71,13 @@ function CastBarSlot:OnCastChanged()
     self.renderer:ShowCast(t)
     self:UpdateCastFill()
 
-    -- Subscribe to frequent updates for progress
-    ns.TrackerHelper.events:On("UpdateFrequent", self, self.UpdateCastFill)
+    -- Subscribe to semi-frequent updates for progress (throttled ~45ms)
+    ns.TrackerHelper.events:On("UpdateSemiFrequent", self, self.UpdateCastFill)
 end
 
 function CastBarSlot:UpdateCastFill()
     if not self.isActive or not self.tracker then
-        ns.TrackerHelper.events:Off("UpdateFrequent", self, self.UpdateCastFill)
+        ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
         return
     end
 
@@ -85,7 +85,7 @@ function CastBarSlot:UpdateCastFill()
     local state = t.state
 
     if state == CT.STATE_NONE or state == CT.STATE_INTERRUPTED or state == CT.STATE_SUCCEEDED then
-        ns.TrackerHelper.events:Off("UpdateFrequent", self, self.UpdateCastFill)
+        ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.UpdateCastFill)
         return
     end
 

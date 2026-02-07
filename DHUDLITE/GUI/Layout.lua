@@ -105,6 +105,9 @@ function Layout:CreateFrames()
 
     -- Combo point / resource frames
     self:CreateResourceFrames()
+
+    -- Pre-create dynamic bar segments to avoid frame creation during combat
+    self:WarmupBarGroups()
 end
 
 function Layout:CreateBackgroundTexture(side)
@@ -222,6 +225,25 @@ function Layout:CreateIconFrames()
     self.raidIcon = FF:CreateIconFrame("DHUDLITE_Icon_RaidTarget", "DHUDLITE_Center_TextInfo1",
         "BOTTOM", "TOP", 0, 2, 25, 25, "BlizzardRaidIcon1")
     self.raidIcon:Hide()
+end
+
+-- Create all possible dynamic bar frames up-front to minimize taint/perf spikes
+function Layout:WarmupBarGroups()
+    local groups = {
+        { self.leftBig1,   6 }, { self.leftBig2,   6 },
+        { self.leftSmall1, 3 }, { self.leftSmall2, 3 },
+        { self.rightBig1,  6 }, { self.rightBig2,  6 },
+        { self.rightSmall1,3 }, { self.rightSmall2,3 },
+    }
+    for _, pair in ipairs(groups) do
+        local group, limit = pair[1], pair[2]
+        if group then
+            -- Touch the highest index to force creation of all frames up to limit
+            local _ = group[limit]
+            -- Hide them by default; they will be shown by renderer
+            if group.SetFramesShown then group:SetFramesShown(0) end
+        end
+    end
 end
 
 function Layout:CreateResourceFrames()
