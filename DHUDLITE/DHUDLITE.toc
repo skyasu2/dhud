@@ -31,3 +31,4 @@ Slots/IconSlot.lua
 AlphaManager.lua
 HUDManager.lua
 Main.lua
+Options.lua
