@@ -47,6 +47,24 @@ SlashCmdList["DHUDLITE"] = function(msg)
     elseif msg == "alpha" then
         ns.AlphaManager:Refresh()
         ns.Print("Alpha refreshed.")
+    elseif msg:match("^distance ") then
+        local n = tonumber((msg:match("^distance%s+(%S+)")))
+        if n then
+            ns.Settings:Set("barsDistanceDiv2", n)
+            ns.Layout:SetBarsDistance(n)
+            ns.Print("Bars half-distance set to: " .. n)
+        else
+            ns.Print("Usage: /dhudlite distance <number>")
+        end
+    elseif msg:match("^style ") then
+        local n = tonumber((msg:match("^style%s+(%S+)")))
+        if n and n >= 1 and n <= 5 then
+            ns.Settings:Set("barsTexture", n)
+            ns.Layout:RefreshBarStyles()
+            ns.Print("Bar style set to: " .. n)
+        else
+            ns.Print("Usage: /dhudlite style <1-5>")
+        end
     elseif msg:match("^castfreq ") then
         local arg = msg:match("^castfreq%s+(%S+)") or ""
         if arg == "semi" or arg == "normal" then
@@ -61,6 +79,8 @@ SlashCmdList["DHUDLITE"] = function(msg)
         ns.Print("  /dhudlite show - Force HUD visible")
         ns.Print("  /dhudlite hide - Hide HUD")
         ns.Print("  /dhudlite alpha - Refresh alpha state")
+        ns.Print("  /dhudlite distance <num> - Set half-distance between bars")
+        ns.Print("  /dhudlite style <1-5> - Set bar texture style")
         ns.Print("  /dhudlite castfreq <semi|normal> - Set cast update rate")
     end
 end

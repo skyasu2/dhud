@@ -8,8 +8,8 @@ local defaults = {
     barsTexture = 2,
     -- Show background
     showBackground = true,
-    -- Bar distance from center (half-distance)
-    barsDistanceDiv2 = 0,
+    -- Bar distance from center (half-distance, pixels)
+    barsDistanceDiv2 = 60,
     -- Alpha settings
     alphaInCombat = 1.0,
     alphaHasTarget = 0.7,

@@ -108,6 +108,14 @@ function Layout:CreateFrames()
 
     -- Pre-create dynamic bar segments to avoid frame creation during combat
     self:WarmupBarGroups()
+
+    -- React to setting changes
+    ns.Settings:OnChange("barsDistanceDiv2", self, function(_, key, value)
+        self:SetBarsDistance(value or 0)
+    end)
+    ns.Settings:OnChange("barsTexture", self, function(_, key, value)
+        self:RefreshBarStyles()
+    end)
 end
 
 function Layout:CreateBackgroundTexture(side)
@@ -308,5 +316,38 @@ function Layout:SetAlpha(alpha)
     local root = FF.frames["DHUDLITE_UIParent"]
     if root then
         root:SetAlpha(alpha)
+    end
+end
+
+-- Update left/right bar background offsets from center
+function Layout:SetBarsDistance(dist)
+    dist = tonumber(dist) or 0
+    local left = FF.frames["DHUDLITE_Left_BarsBackground"]
+    local right = FF.frames["DHUDLITE_Right_BarsBackground"]
+    local parent = FF.frames["DHUDLITE_UIParent"]
+    if left and parent then
+        left:ClearAllPoints()
+        left:SetPoint("RIGHT", parent, "CENTER", -dist, 0)
+    end
+    if right and parent then
+        right:ClearAllPoints()
+        right:SetPoint("LEFT", parent, "CENTER", dist, 0)
+    end
+end
+
+-- Apply current bar texture style to all created bar frames
+function Layout:RefreshBarStyles()
+    local style = ns.Settings:Get("barsTexture") or 1
+    local groups = { self.leftBig1, self.leftBig2, self.leftSmall1, self.leftSmall2,
+                     self.rightBig1, self.rightBig2, self.rightSmall1, self.rightSmall2 }
+    for _, group in ipairs(groups) do
+        if group then
+            for i = 1, (group.framesShown or 0) do
+                local frame = rawget(group, i)
+                if frame and frame.texture and frame.texture.pathPrefix then
+                    frame.texture:SetTexture(frame.texture.pathPrefix .. style)
+                end
+            end
+        end
     end
 end
