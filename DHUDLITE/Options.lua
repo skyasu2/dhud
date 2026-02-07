@@ -56,7 +56,8 @@ local function CreateSettingsPanel()
     -- Background toggle
     local bg = CreateFrame("CheckButton", "DHUDLITE_ShowBackground", panel, "UICheckButtonTemplate")
     bg:SetPoint("TOPLEFT", 16, y)
-    bg.text:SetText("Show Background Mask (empty slots)")
+    local bgText = _G[bg:GetName() .. "Text"] or bg.Text
+    if bgText then bgText:SetText("Show Background Mask (empty slots)") end
     bg:SetScript("OnClick", function(self)
         ns.Settings:Set("showBackground", self:GetChecked() and true or false)
         if ns.Layout and ns.Layout.RefreshBackgrounds then ns.Layout:RefreshBackgrounds() end
