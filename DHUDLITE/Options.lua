@@ -3,6 +3,15 @@ local ADDON_NAME, ns = ...
 local settingsCategory -- new Settings API category
 local legacyPanel -- legacy InterfaceOptions panel
 local built = false
+-- Metadata helper (11.0+ uses C_AddOns.GetAddOnMetadata)
+local function GetMeta(addon, field)
+    if _G.C_AddOns and _G.C_AddOns.GetAddOnMetadata then
+        return _G.C_AddOns.GetAddOnMetadata(addon, field)
+    elseif _G.GetAddOnMetadata then
+        return _G.GetAddOnMetadata(addon, field)
+    end
+    return nil
+end
 
 -- Build UI controls lazily to avoid load-order issues
 local function BuildControls(panel)
@@ -24,7 +33,7 @@ local function BuildControls(panel)
         "  /dhudlite move on|off  - 이동 모드 토글\n" ..
         "  /dhudlite visible on|off  - 강제 표시/숨김\n" ..
         "  /dhudlite reset     - 설정 초기화 후 리로드\n\n" ..
-        "현재 버전: v" .. (GetAddOnMetadata(ADDON_NAME, "Version") or "")
+        "현재 버전: v" .. (GetMeta(ADDON_NAME, "Version") or "")
     ))
 
     local y = -64
