@@ -347,12 +347,9 @@ function Layout:RefreshBackgrounds()
         if (Settings:Get(side .. "Small2") or "") ~= "" then mask = mask + 8 end
         return mask
     end
-    local leftMask = maskFor("left")
-    local rightMask = maskFor("right")
-    if Settings:Get("showBackground") then
-        if leftMask == 0 then leftMask = 1 end
-        if rightMask == 0 then rightMask = 2 end
-    end
+    local show = Settings:Get("showBackground") and true or false
+    local leftMask = show and maskFor("left") or 0
+    local rightMask = show and maskFor("right") or 0
     self:UpdateBackground("left", leftMask)
     self:UpdateBackground("right", rightMask)
 end
