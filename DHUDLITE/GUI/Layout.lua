@@ -393,7 +393,11 @@ function Layout:RefreshBarStyles()
             for i = 1, (group.framesShown or 0) do
                 local frame = rawget(group, i)
                 if frame and frame.texture and frame.texture.pathPrefix then
-                    frame.texture:SetTexture(ns.FrameFactory.ResolvePath((frame.texture.pathPrefix or "") .. tostring(style)))
+                    local path = ns.FrameFactory.ResolvePath((frame.texture.pathPrefix or "") .. tostring(style))
+                    frame.texture:SetTexture(path)
+                    if not frame.texture:GetTexture() then
+                        frame.texture:SetTexture("Interface\\Buttons\\WHITE8X8")
+                    end
                 end
             end
         end

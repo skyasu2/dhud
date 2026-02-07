@@ -49,7 +49,12 @@ function FrameFactory:CreateBarFrame(name, parent, pointThis, pointParent, offX,
     local frame, texture = self:CreateTextureFrame(name, parent, pointThis, pointParent, offX, offY, w, h, textureName, mirror)
     local style = ns.Settings:Get("barsTexture")
     texture.pathPrefix = Textures.list[textureName][1]
-    texture:SetTexture(self.ResolvePath((texture.pathPrefix or "") .. tostring(style or 1)))
+    local path = self.ResolvePath((texture.pathPrefix or "") .. tostring(style or 1))
+    texture:SetTexture(path)
+    if not texture:GetTexture() then
+        -- Fallback to a solid texture so fills are visible even if art fails to load
+        texture:SetTexture("Interface\\Buttons\\WHITE8X8")
+    end
     texture:ClearAllPoints()
     texture:SetPoint("CENTER", frame, "CENTER", 0, 0)
     return frame, texture

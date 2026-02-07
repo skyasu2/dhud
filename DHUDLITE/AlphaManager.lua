@@ -111,6 +111,13 @@ function AlphaManager:ForceAlpha(alpha)
     currentAlpha = alpha
     targetAlpha = alpha
     Layout:SetAlpha(alpha)
+    -- Ensure side alphas reset when forcing visibility
+    if alpha >= 1 then
+        if Layout.SetSideAlpha then
+            Layout:SetSideAlpha("left", 1)
+            Layout:SetSideAlpha("right", 1)
+        end
+    end
     Layout:SetVisible(alpha > 0)
     SetUpdatesRequired(false)
 end
