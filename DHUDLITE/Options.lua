@@ -2,10 +2,6 @@ local ADDON_NAME, ns = ...
 
 -- Minimal settings panel so the addon appears in ESC -> Options -> AddOns
 local function CreateSettingsPanel()
-    if not Settings or not Settings.RegisterCanvasLayoutCategory then
-        return -- Pre-10.0 fallback: no settings panel registration
-    end
-
     local panel = CreateFrame("Frame")
     panel:Hide()
 
@@ -27,9 +23,12 @@ local function CreateSettingsPanel()
         "현재 버전: v" .. (GetAddOnMetadata(ADDON_NAME, "Version") or "")
     ))
 
-    local category = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
-    category.ID = "DHUDLITE"
-    Settings.RegisterAddOnCategory(category)
+    -- New settings system (Dragonflight+)
+    if Settings and Settings.RegisterCanvasLayoutCategory then
+        local category = Settings.RegisterCanvasLayoutCategory(panel, "DHUD Lite")
+        category.ID = "DHUDLITE"
+        Settings.RegisterAddOnCategory(category)
+    end
 
     -- Build simple interactive controls
     local y = -64
@@ -129,4 +128,13 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
     CreateSettingsPanel()
+    -- Legacy options frame fallback (older clients or if Settings UI not available)
+    if not (Settings and Settings.RegisterCanvasLayoutCategory) and InterfaceOptions_AddCategory then
+        local legacy = CreateFrame("Frame", nil, UIParent)
+        legacy.name = "DHUD Lite"
+        InterfaceOptions_AddCategory(legacy)
+    end
+    if ns and ns.Print then
+        ns.Print("Settings registered. Open ESC -> Options -> AddOns (or Interface -> AddOns)")
+    end
 end)
