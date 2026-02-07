@@ -34,6 +34,11 @@ local defaults = {
     fontSizeCast = 10,
     -- Text outlines (0=none, 1=OUTLINE, 2=THICKOUTLINE)
     fontOutline = 0,
+    -- Text formats: "value", "percent", "value+percent", "deficit", "none"
+    textFormatHealth = "value+percent",
+    textFormatPower = "value+percent",
+    -- Threat coloring for target health bars
+    threatColoring = true,
     -- Health bar layers
     showHealthShield = true,
     showHealthShieldOverMax = true,

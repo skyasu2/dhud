@@ -128,7 +128,17 @@ function BarSlot:UpdateHealth()
                 return Colorize:GetHealthLayerColor("notTapped", unitId)
             end
             local pct = hEnd
-            return Colorize:GetHealthColor(pct, unitId)
+            local r, g, b = Colorize:GetHealthColor(pct, unitId)
+            -- Threat coloring overlay for target health (IceHUD-like)
+            if ns.Settings:Get("threatColoring") and unitId == "target" and UnitCanAttack("player", "target") then
+                local status = UnitThreatSituation("player", "target") or 0
+                if status and status >= 2 then -- 2=high, 3=aggro
+                    local tr, tg, tb = GetThreatStatusColor(status)
+                    -- Blend threat color with base
+                    r = (r + tr) * 0.5; g = (g + tg) * 0.5; b = (b + tb) * 0.5
+                end
+            end
+            return r, g, b
         elseif valueType == VT_ABSORB then
             return Colorize:GetHealthLayerColor("absorb", unitId)
         elseif valueType == VT_REDUCE then
@@ -143,7 +153,7 @@ function BarSlot:UpdateHealth()
 
     -- Update text (Secret Value safe via string.format)
     if self.textField then
-        self.textField:DSetText(TextFormat:FormatHealthText(t))
+        self.textField:DSetText(TextFormat:FormatHealthTextBySetting(t))
     end
 end
 
@@ -190,6 +200,6 @@ function BarSlot:UpdatePower()
     end)
 
     if self.textField then
-        self.textField:DSetText(TextFormat:FormatPowerText(t))
+        self.textField:DSetText(TextFormat:FormatPowerTextBySetting(t))
     end
 end

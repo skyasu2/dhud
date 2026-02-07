@@ -54,6 +54,35 @@ function TextFormat:FormatPercent(current, maximum)
     return string.format("%d%%", math.floor(current * 100 / maximum))
 end
 
+-- IceHUD-like flexible text formats
+local function format_by_key(kind, tracker)
+    local fmt = ns.Settings:Get(kind) or "value+percent"
+    local cur = tracker.amount or 0
+    local max = tracker.amountMax or 0
+    if fmt == "none" then
+        return ""
+    elseif fmt == "value" then
+        return TextFormat:FormatNumber(cur)
+    elseif fmt == "percent" then
+        return TextFormat:FormatPercent(cur, max)
+    elseif fmt == "value+percent" then
+        return string.format("%s (%s)", TextFormat:FormatNumber(cur), TextFormat:FormatPercent(cur, max))
+    elseif fmt == "deficit" then
+        local deficit = max - cur
+        if deficit <= 0 then return "" end
+        return string.format("-%s", TextFormat:FormatNumber(deficit))
+    end
+    return string.format("%s / %s", TextFormat:FormatNumber(cur), TextFormat:FormatNumber(max))
+end
+
+function TextFormat:FormatHealthTextBySetting(tracker)
+    return format_by_key("textFormatHealth", tracker)
+end
+
+function TextFormat:FormatPowerTextBySetting(tracker)
+    return format_by_key("textFormatPower", tracker)
+end
+
 function TextFormat:FormatCastTime(remaining)
     if remaining <= 0 then return "" end
     return string.format("%.1f", remaining)
