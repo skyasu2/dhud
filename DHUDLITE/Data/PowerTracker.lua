@@ -89,16 +89,16 @@ function PowerTracker:OnVehicleChanged()
 end
 
 function PowerTracker:UpdatePower()
-    local val = UnitPower(self.unitId, self.resourceType) or 0
-    if val ~= self.amount then
-        self.amount = val
-        self.events:Fire("DataChanged")
-    end
+    -- Secret values can't be compared; always store and fire
+    self.amount = UnitPower(self.unitId, self.resourceType) or 0
+    self.events:Fire("DataChanged")
 end
 
 function PowerTracker:UpdateMaxPower()
     local val = UnitPowerMax(self.unitId, self.resourceType) or 0
-    if val <= 0 then val = 1 end
+    if not canaccessvalue or canaccessvalue(val) then
+        if val <= 0 then val = 1 end
+    end
     self.amountMax = val
     -- Some powers have min values (e.g., balance druid)
     self.amountMin = 0

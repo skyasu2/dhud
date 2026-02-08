@@ -6,11 +6,12 @@ ns.TextFormat = TextFormat
 local METRIC_PREFIXES = { "k", "M", "G", "T" }
 
 function TextFormat:FormatNumber(number, limit)
-    limit = limit or (ns.Settings:Get("shortNumbers") and 5 or 1000)
-    if number == 0 then return "0" end
+    -- Secret values must be checked BEFORE any comparison/arithmetic
     if issecretvalue and issecretvalue(number) then
         return string.format("%s", number)
     end
+    limit = limit or (ns.Settings:Get("shortNumbers") and 5 or 1000)
+    if number == 0 then return "0" end
     local numChars = math.floor(math.log10(math.abs(number)) + 1)
     if numChars <= limit then
         return string.format("%d", number)
@@ -50,6 +51,10 @@ function TextFormat:FormatPowerText(tracker)
 end
 
 function TextFormat:FormatPercent(current, maximum)
+    -- Secret values can't do arithmetic
+    if issecretvalue and (issecretvalue(current) or issecretvalue(maximum)) then
+        return ""
+    end
     if maximum <= 0 then return "0%" end
     return string.format("%d%%", math.floor(current * 100 / maximum))
 end
@@ -59,19 +64,24 @@ local function format_by_key(kind, tracker)
     local fmt = ns.Settings:Get(kind) or "value+percent"
     local cur = tracker.amount or 0
     local max = tracker.amountMax or 0
+    local isSecret = issecretvalue and (issecretvalue(cur) or issecretvalue(max))
     if fmt == "none" then
         return ""
     elseif fmt == "value" then
         return TextFormat:FormatNumber(cur)
     elseif fmt == "percent" then
+        if isSecret then return "" end
         return TextFormat:FormatPercent(cur, max)
     elseif fmt == "value+percent" then
+        if isSecret then return TextFormat:FormatNumber(cur) end
         return string.format("%s (%s)", TextFormat:FormatNumber(cur), TextFormat:FormatPercent(cur, max))
     elseif fmt == "deficit" then
+        if isSecret then return "" end
         local deficit = max - cur
         if deficit <= 0 then return "" end
         return string.format("-%s", TextFormat:FormatNumber(deficit))
     end
+    if isSecret then return TextFormat:FormatNumber(cur) end
     return string.format("%s / %s", TextFormat:FormatNumber(cur), TextFormat:FormatNumber(max))
 end
 

@@ -80,24 +80,28 @@ function HealthTracker:StopTracking()
 end
 
 function HealthTracker:UpdateHealth()
-    local val = UnitHealth(self.unitId) or 0
-    if val ~= self.amount then
-        self.amount = val
-        self.events:Fire("DataChanged")
-    end
+    -- Secret values can't be compared; always store and fire
+    self.amount = UnitHealth(self.unitId) or 0
+    self.events:Fire("DataChanged")
 end
 
 function HealthTracker:UpdateMaxHealth()
     local val = UnitHealthMax(self.unitId) or 0
     self.amountMaxUnmodified = val
-    if self.amountHealthModifier == 0 then
-        self.amountMax = val
+    local canAccess = not canaccessvalue or canaccessvalue(val)
+    if canAccess then
+        if self.amountHealthModifier == 0 then
+            self.amountMax = val
+        else
+            local amountMax = math.floor(val / (1 - self.amountHealthModifier) + 0.5)
+            self.amountMaxHealthReduce = amountMax - val
+            self.amountMax = amountMax
+        end
+        if self.amountMax <= 0 then self.amountMax = 1 end
     else
-        local amountMax = math.floor(val / (1 - self.amountHealthModifier) + 0.5)
-        self.amountMaxHealthReduce = amountMax - val
-        self.amountMax = amountMax
+        self.amountMax = val
+        self.amountMaxHealthReduce = 0
     end
-    if self.amountMax <= 0 then self.amountMax = 1 end
     self.events:Fire("DataChanged")
 end
 
@@ -108,19 +112,15 @@ function HealthTracker:UpdateAbsorbs()
 end
 
 function HealthTracker:UpdateIncomingHeal()
-    local val = UnitGetIncomingHeals(self.unitId) or 0
-    if val ~= self.amountHealIncoming then
-        self.amountHealIncoming = val
-        self.events:Fire("DataChanged")
-    end
+    -- Secret values can't be compared; always store and fire
+    self.amountHealIncoming = UnitGetIncomingHeals(self.unitId) or 0
+    self.events:Fire("DataChanged")
 end
 
 function HealthTracker:UpdateHealAbsorb()
-    local val = UnitGetTotalHealAbsorbs(self.unitId) or 0
-    if val ~= self.amountHealAbsorb then
-        self.amountHealAbsorb = val
-        self.events:Fire("DataChanged")
-    end
+    -- Secret values can't be compared; always store and fire
+    self.amountHealAbsorb = UnitGetTotalHealAbsorbs(self.unitId) or 0
+    self.events:Fire("DataChanged")
 end
 
 function HealthTracker:UpdateMaxHpModifier()
@@ -128,6 +128,7 @@ function HealthTracker:UpdateMaxHpModifier()
     if GetUnitTotalModifiedMaxHealthPercent then
         val = GetUnitTotalModifiedMaxHealthPercent(self.unitId) or 0
     end
+    if canaccessvalue and not canaccessvalue(val) then return end
     if val >= 1 or val < 0 then return end
     if val ~= self.amountHealthModifier then
         self.amountHealthModifier = val

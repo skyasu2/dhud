@@ -16,6 +16,13 @@ local VT_HEAL = 5
 local VT_POWER = 1
 local VT_POWER_EMPTY = 0
 
+-- Safe number extraction: returns default if val is nil or a secret value
+local function _safe(val, default)
+    if val == nil then return default or 0 end
+    if canaccessvalue and not canaccessvalue(val) then return default or 0 end
+    return val
+end
+
 function BarSlot:New(slotName, barType)
     local o = BarSlot.super.New(self)
     o.slotName = slotName
@@ -72,27 +79,39 @@ end
 
 function BarSlot:UpdateHealth()
     local t = self.tracker
-    local amountMax = t.amountMax
-    local amount = t.amount
+    local _cav = canaccessvalue
 
-    -- Secret Values safety: check if values are accessible (IceHUD pattern)
-    local canAccess = not canaccessvalue or canaccessvalue(amount)
+    -- Secret Values safety: check actual tracker values before arithmetic
+    local canAccess = not _cav or (_cav(t.amount) and _cav(t.amountMax))
 
-    -- Percent fallback via UnitHealthPercent API (12.0.0+)
+    -- Calculate percent for bar fill
     local healthPct
-    if UnitHealthPercent then
-        healthPct = (UnitHealthPercent(self.unitId, true) or 0) / 100
-    else
-        healthPct = (amountMax > 0) and (amount / amountMax) or 0
+    if canAccess then
+        local amountMax = t.amountMax
+        if amountMax <= 0 then amountMax = 1 end
+        healthPct = t.amount / amountMax
     end
+    -- Fallback: UnitHealthPercent API (IceHUD pattern, CurveConstants.ScaleTo100)
+    if not healthPct and UnitHealthPercent then
+        local raw = UnitHealthPercent(self.unitId, true,
+            CurveConstants and CurveConstants.ScaleTo100)
+        if raw and (not _cav or _cav(raw)) then
+            healthPct = raw / 100
+        end
+    end
+    if not healthPct then healthPct = 1 end
 
     local sigHeight
 
     if canAccess then
-        local absorbed = Settings:Get("showHealthHealAbsorb") and t.amountHealAbsorb or 0
-        local reduced = Settings:Get("showHealthReduce") and t.amountMaxHealthReduce or 0
-        local shield = Settings:Get("showHealthShield") and t.amountExtra or 0
-        local heal = Settings:Get("showHealthHealIncoming") and t.amountHealIncoming or 0
+        local amount = t.amount
+        local amountMax = t.amountMax
+        if amountMax <= 0 then amountMax = 1 end
+
+        local absorbed = Settings:Get("showHealthHealAbsorb") and _safe(t.amountHealAbsorb) or 0
+        local reduced = Settings:Get("showHealthReduce") and _safe(t.amountMaxHealthReduce) or 0
+        local shield = Settings:Get("showHealthShield") and _safe(t.amountExtra) or 0
+        local heal = Settings:Get("showHealthHealIncoming") and _safe(t.amountHealIncoming) or 0
 
         if absorbed > amount then absorbed = amount end
         local amountNonAbsorbed = amount - absorbed
@@ -103,7 +122,7 @@ function BarSlot:UpdateHealth()
         end
 
         local amountTotalPlusShield = amountMax
-        local shieldMax = t.amountExtraMax or shield
+        local shieldMax = _safe(t.amountExtraMax, shield)
         if amount + shieldMax > amountMax then
             amountTotalPlusShield = amount + shieldMax
             if not Settings:Get("showHealthShieldOverMax") then
@@ -184,17 +203,16 @@ end
 
 function BarSlot:UpdatePower()
     local t = self.tracker
-    local amountMax = t.amountMax
-    local amountMin = t.amountMin
-    local amount = t.amount
-    local range = amountMax - amountMin
-
-    if range <= 0 then range = 1 end
-
-    -- Secret Values safety
-    local canAccess = not canaccessvalue or canaccessvalue(amount)
+    local _cav = canaccessvalue
+    local canAccess = not _cav or (_cav(t.amount) and _cav(t.amountMax))
 
     if canAccess then
+        local amountMax = t.amountMax
+        local amountMin = t.amountMin
+        local amount = t.amount
+        local range = amountMax - amountMin
+        if range <= 0 then range = 1 end
+
         if amountMin == 0 then
             self.valuesInfo[1] = VT_POWER_EMPTY
             self.valuesInfo[2] = VT_POWER
@@ -214,12 +232,11 @@ function BarSlot:UpdatePower()
             end
         end
     else
-        -- Secret Values fallback: approximate percent from amountMax
-        local pct = (amountMax > 0) and (amount / amountMax) or 0
+        -- Secret Values fallback: no accessible percentage API for power
         self.valuesInfo[1] = VT_POWER_EMPTY
         self.valuesInfo[2] = VT_POWER
         self.valuesHeight[1] = 0
-        self.valuesHeight[2] = pct
+        self.valuesHeight[2] = 0
     end
 
     -- Trim arrays to 2
