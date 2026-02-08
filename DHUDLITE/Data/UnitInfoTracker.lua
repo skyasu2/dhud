@@ -27,17 +27,50 @@ function UnitInfoTracker:New(unitId)
     o.raidIcon = 0
     o.isTracking = false
     o.events = ns.EventBus:New()
+    o.eventsFrame = ns.CreateEventFrame()
     return o
 end
 
 function UnitInfoTracker:StartTracking()
     if self.isTracking then return end
     self.isTracking = true
+
+    local tracker = self
+    local ef = self.eventsFrame
+
+    function ef:RAID_TARGET_UPDATE()
+        tracker:UpdateAllData()
+    end
+    function ef:UNIT_NAME_UPDATE(unitId)
+        if unitId ~= tracker.unitId then return end
+        tracker:UpdateAllData()
+    end
+    function ef:UNIT_LEVEL(unitId)
+        if unitId ~= tracker.unitId then return end
+        tracker:UpdateAllData()
+    end
+    function ef:UNIT_CLASSIFICATION_CHANGED(unitId)
+        if unitId ~= tracker.unitId then return end
+        tracker:UpdateAllData()
+    end
+    function ef:UNIT_FACTION(unitId)
+        if unitId ~= tracker.unitId then return end
+        tracker:UpdateAllData()
+    end
+
+    ef:RegisterEvent("RAID_TARGET_UPDATE")
+    ef:RegisterEvent("UNIT_NAME_UPDATE")
+    ef:RegisterEvent("UNIT_LEVEL")
+    ef:RegisterEvent("UNIT_CLASSIFICATION_CHANGED")
+    ef:RegisterEvent("UNIT_FACTION")
+
     self:UpdateAllData()
 end
 
 function UnitInfoTracker:StopTracking()
+    if not self.isTracking then return end
     self.isTracking = false
+    self.eventsFrame:UnregisterAllEvents()
 end
 
 function UnitInfoTracker:UpdateAllData()

@@ -6,6 +6,7 @@ ns.HealthTracker = HealthTracker
 function HealthTracker:New(unitId)
     local o = setmetatable({}, self)
     o.unitId = unitId
+    o.baseUnitId = unitId
     o.amount = 0
     o.amountMax = 1
     o.amountMaxUnmodified = 0
@@ -63,6 +64,9 @@ function HealthTracker:StartTracking()
     -- Also update on timer for secret values safety
     ns.TrackerHelper.events:On("Update", self, self.UpdateHealth)
 
+    -- React to vehicle/player caster unit changes
+    ns.TrackerHelper.events:On("VehicleChanged", self, self.OnVehicleChanged)
+
     self:UpdateAllData()
 end
 
@@ -77,6 +81,7 @@ function HealthTracker:StopTracking()
     ef:UnregisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
     ef:UnregisterEvent("UNIT_MAX_HEALTH_MODIFIERS_CHANGED")
     ns.TrackerHelper.events:Off("Update", self, self.UpdateHealth)
+    ns.TrackerHelper.events:Off("VehicleChanged", self, self.OnVehicleChanged)
 end
 
 function HealthTracker:UpdateHealth()
@@ -137,6 +142,14 @@ function HealthTracker:UpdateMaxHpModifier()
         self.amountMax = amountMax
         if self.amountMax <= 0 then self.amountMax = 1 end
         self.events:Fire("DataChanged")
+    end
+end
+
+function HealthTracker:OnVehicleChanged()
+    if self.baseUnitId == "player" then
+        local caster = ns.TrackerHelper.playerCasterUnitId or "player"
+        self.unitId = caster
+        self:UpdateAllData()
     end
 end
 

@@ -161,6 +161,7 @@ end
 function FrameFactory:CreateDynamicGroup(groupName, createFunc, limit)
     local group = {}
     group.framesShown = 0
+    group.limit = limit
     local mt = {}
     mt.__index = function(list, key)
         if type(key) ~= "number" then return nil end

@@ -123,11 +123,8 @@ function CastBarRenderer:UpdateFlash(elapsed)
 end
 
 function CastBarRenderer:UpdateTexts(tracker)
-    if not tracker then return end
+    if not tracker or not tracker.endTime then return end
     local remaining = tracker.endTime - GetTime()
-    if tracker.state == CT.STATE_CHANNELING or tracker.state == CT.STATE_EMPOWERING then
-        remaining = tracker.endTime - GetTime()
-    end
     if remaining < 0 then remaining = 0 end
 
     if self.castTimeField then

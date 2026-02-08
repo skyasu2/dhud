@@ -24,6 +24,7 @@ function ResourceSlot:New()
     o.lastCount = 0
     o.lastCountMax = 0
     o.isPositioned = false
+    o.runeTickSubscribed = false
     return o
 end
 
@@ -47,6 +48,7 @@ function ResourceSlot:Deactivate()
     if self.tracker then
         self.tracker:StopTracking()
     end
+    self:UnsubscribeRuneTick()
     self:HideAll()
     ns.SlotBase.Deactivate(self)
 end
@@ -150,6 +152,7 @@ function ResourceSlot:UpdateRunes()
         self.isPositioned = true
     end
 
+    local anyOnCooldown = false
     for i = 1, 6 do
         local frame = self.runeFrames[i]
         if frame then
@@ -166,6 +169,7 @@ function ResourceSlot:UpdateRunes()
                     end
                 else
                     -- On cooldown - dim and show remaining time
+                    anyOnCooldown = true
                     if frame.texture then
                         frame.texture:SetVertexColor(0.4, 0.4, 0.4)
                     end
@@ -183,4 +187,28 @@ function ResourceSlot:UpdateRunes()
             end
         end
     end
+
+    -- Subscribe to frequent updates while any rune is on cooldown
+    if anyOnCooldown then
+        self:SubscribeRuneTick()
+    else
+        self:UnsubscribeRuneTick()
+    end
+end
+
+function ResourceSlot:SubscribeRuneTick()
+    if self.runeTickSubscribed then return end
+    self.runeTickSubscribed = true
+    ns.TrackerHelper.events:On("UpdateSemiFrequent", self, self.OnRuneTick)
+end
+
+function ResourceSlot:UnsubscribeRuneTick()
+    if not self.runeTickSubscribed then return end
+    self.runeTickSubscribed = false
+    ns.TrackerHelper.events:Off("UpdateSemiFrequent", self, self.OnRuneTick)
+end
+
+function ResourceSlot:OnRuneTick()
+    if not self.isActive or not self.tracker then return end
+    self:UpdateRunes()
 end

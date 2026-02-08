@@ -149,16 +149,6 @@ local function SetupIconSlot()
     return slot
 end
 
--- Calculate background mask for a side
-local function CalculateBgMask(side)
-    local mask = 0
-    if (Settings:Get(side .. "Big1") or "") ~= "" then mask = mask + 1 end
-    if (Settings:Get(side .. "Big2") or "") ~= "" then mask = mask + 2 end
-    if (Settings:Get(side .. "Small1") or "") ~= "" then mask = mask + 4 end
-    if (Settings:Get(side .. "Small2") or "") ~= "" then mask = mask + 8 end
-    return mask
-end
-
 function HUDManager:Init()
     -- Setup bar slots
     local slotNames = { "leftBig1", "leftBig2", "leftSmall1", "leftSmall2",
@@ -234,6 +224,34 @@ function HUDManager:ActivateAll()
     if iconSlot then
         iconSlot:Activate()
     end
+end
+
+-- Unsubscribe all HUDManager-level listeners (TrackerHelper events + Settings callbacks)
+-- Must be called before re-calling Init() to prevent listener accumulation
+function HUDManager:Cleanup()
+    TrackerHelper.events:Off("TargetChanged", self, self.OnTargetChanged)
+    TrackerHelper.events:Off("TargetOfTargetChanged", self, self.OnTargetOfTargetChanged)
+    TrackerHelper.events:Off("Update", self, self.OnRangeUpdate)
+
+    local settingKeys = {
+        "castUpdateRate",
+        "leftBig1", "leftBig2", "leftSmall1", "leftSmall2",
+        "rightBig1", "rightBig2", "rightSmall1", "rightSmall2",
+        "leftCastBar", "rightCastBar",
+    }
+    for _, key in ipairs(settingKeys) do
+        Settings:OffChange(key, self)
+    end
+
+    -- Clear tracker cache so fresh trackers are created on re-Init
+    for k in pairs(trackers) do
+        trackers[k] = nil
+    end
+    barSlots = {}
+    castBarSlots = {}
+    resourceSlot = nil
+    unitInfoSlot = nil
+    iconSlot = nil
 end
 
 function HUDManager:DeactivateAll()

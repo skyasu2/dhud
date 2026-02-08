@@ -152,10 +152,27 @@ function Settings:OnChange(key, obj, func)
     cbs[#cbs + 1] = { obj = obj, fn = func }
 end
 
+function Settings:OffChange(key, obj)
+    local cbs = changeCallbacks[key]
+    if not cbs then return end
+    for i = #cbs, 1, -1 do
+        if cbs[i].obj == obj then
+            table.remove(cbs, i)
+        end
+    end
+end
+
 function Settings:GetDefault(key)
     return defaults[key]
 end
 
 function Settings:Reset(key)
-    self:Set(key, defaults[key])
+    local val = defaults[key]
+    if type(val) == "table" then
+        local copy = {}
+        for k, v in pairs(val) do copy[k] = v end
+        self:Set(key, copy)
+    else
+        self:Set(key, val)
+    end
 end

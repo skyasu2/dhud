@@ -401,7 +401,8 @@ function Layout:RefreshBarStyles()
                      self.rightBig1, self.rightBig2, self.rightSmall1, self.rightSmall2 }
     for _, group in ipairs(groups) do
         if group then
-            for i = 1, (group.framesShown or 0) do
+            local limit = group.limit or (group.framesShown or 0)
+            for i = 1, limit do
                 local frame = rawget(group, i)
                 if frame and frame.texture and frame.texture.pathPrefix then
                     local path = ns.FrameFactory.ResolvePath((frame.texture.pathPrefix or "") .. tostring(style))

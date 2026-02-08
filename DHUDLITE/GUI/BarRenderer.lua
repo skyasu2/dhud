@@ -85,7 +85,6 @@ function BarRenderer:EnsureStatusBar()
     sb:SetAllPoints(frame)
     sb:SetMinMaxValues(0, 1)
     sb:SetOrientation("VERTICAL")
-    sb:SetFillStyle("STANDARD")
     sb:SetFrameLevel(frame:GetFrameLevel() + 1)
 
     -- Use the same bar texture
@@ -135,7 +134,7 @@ function BarRenderer:UpdateBarSecret(fillValue, r, g, b)
 
     -- Set color
     if r then
-        sb:SetStatusBarColor(r, g, b)
+        sb.barTexture:SetVertexColor(r, g, b)
     end
 end
 

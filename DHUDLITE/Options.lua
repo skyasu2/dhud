@@ -176,9 +176,10 @@ local function BuildControls(panel)
     if resText then resText:SetText("Show Class Resources (Combo/Runes/Etc)") end
     res:SetScript("OnClick", function(self)
         ns.Settings:Set("showResources", self:GetChecked() and true or false)
-        if ns.HUDManager and ns.HUDManager.DeactivateAll then
-            -- Rebuild HUD to apply resource slot on the fly
+        if ns.HUDManager then
+            -- Cleanup listeners then rebuild HUD to apply resource slot on the fly
             ns.HUDManager:DeactivateAll()
+            ns.HUDManager:Cleanup()
             ns.HUDManager:Init()
         end
     end)

@@ -44,7 +44,7 @@ function EventBus:Off(event, obj, func)
     if not list then return end
     for i = #list, 1, -1 do
         local entry = list[i]
-        if entry.obj == obj and entry.fn == func then
+        if entry and entry.obj == obj and entry.fn == func then
             table.remove(list, i)
             return
         end
