@@ -7,7 +7,7 @@ local CT = ns.CastTracker
 local Colorize = ns.Colorize
 
 function CastBarSlot:New(side)
-    local o = CastBarSlot.__index.New(self)
+    local o = CastBarSlot.super.New(self)
     o.side = side
     o.renderer = nil
     o.unitId = (side == "left") and "player" or "target"

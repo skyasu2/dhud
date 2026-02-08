@@ -4,7 +4,7 @@ local PowerTracker = ns.CreateClass(nil, {})
 ns.PowerTracker = PowerTracker
 
 function PowerTracker:New(unitId, powerType)
-    local o = PowerTracker.__index.New(self)
+    local o = setmetatable({}, self)
     o.unitId = unitId
     o.baseUnitId = unitId
     o.forcedPowerType = powerType -- nil = auto-detect display power

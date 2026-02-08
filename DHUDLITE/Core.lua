@@ -10,12 +10,13 @@ local ADDON_NAME, ns = ...
 function ns.CreateClass(parent, fields)
     local c = fields or {}
     c.__index = c
+    c.super = parent
     if parent then
         setmetatable(c, parent)
     end
     function c:New(o)
         o = o or {}
-        setmetatable(o, c)
+        setmetatable(o, self)
         return o
     end
     return c

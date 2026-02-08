@@ -6,7 +6,7 @@ ns.CastBarRenderer = CastBarRenderer
 local CT = ns.CastTracker
 
 function CastBarRenderer:New(clippingId, side)
-    local o = CastBarRenderer.__index.New(self)
+    local o = setmetatable({}, self)
     o.side = side
     o.castFrame = nil
     o.flashFrame = nil

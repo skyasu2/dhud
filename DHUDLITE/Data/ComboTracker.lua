@@ -14,7 +14,7 @@ ComboTracker.TYPE_ESSENCE = "ESSENCE"
 ComboTracker.TYPE_NONE = "NONE"
 
 function ComboTracker:New()
-    local o = ComboTracker.__index.New(self)
+    local o = setmetatable({}, self)
     o.resourceType = ComboTracker.TYPE_NONE
     o.count = 0
     o.countMax = 0

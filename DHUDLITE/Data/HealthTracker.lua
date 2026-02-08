@@ -4,7 +4,7 @@ local HealthTracker = ns.CreateClass(nil, {})
 ns.HealthTracker = HealthTracker
 
 function HealthTracker:New(unitId)
-    local o = HealthTracker.__index.New(self)
+    local o = setmetatable({}, self)
     o.unitId = unitId
     o.amount = 0
     o.amountMax = 1

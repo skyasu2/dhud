@@ -12,7 +12,7 @@ UnitInfoTracker.REACTION_FRIENDLY_PLAYER_PVP = 5
 UnitInfoTracker.REACTION_NOT_TAPPED = 6
 
 function UnitInfoTracker:New(unitId)
-    local o = UnitInfoTracker.__index.New(self)
+    local o = setmetatable({}, self)
     o.unitId = unitId
     o.name = ""
     o.level = 0

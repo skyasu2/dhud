@@ -8,7 +8,7 @@ local ANIM_SPEED_FAST = 1.0
 local ANIM_SPEED_SLOW = 0.25
 
 function BarRenderer:New(group, clippingId, side)
-    local o = BarRenderer.__index.New(self)
+    local o = setmetatable({}, self)
     o.group = group
     o.side = side -- "left" or "right"
     o.isAnimating = false

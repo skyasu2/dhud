@@ -4,7 +4,7 @@ local SlotBase = ns.CreateClass(nil, {})
 ns.SlotBase = SlotBase
 
 function SlotBase:New()
-    local o = SlotBase.__index.New(self)
+    local o = setmetatable({}, self)
     o.tracker = nil
     o.isActive = false
     o.bindings = {} -- { event, obj, func } for cleanup

@@ -12,7 +12,7 @@ CastTracker.STATE_INTERRUPTED = 4
 CastTracker.STATE_SUCCEEDED = 5
 
 function CastTracker:New(unitId)
-    local o = CastTracker.__index.New(self)
+    local o = setmetatable({}, self)
     o.unitId = unitId
     o.state = CastTracker.STATE_NONE
     o.spellName = ""

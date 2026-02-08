@@ -18,7 +18,7 @@ local COMBO_COLORS = {
 }
 
 function ResourceSlot:New()
-    local o = ResourceSlot.__index.New(self)
+    local o = ResourceSlot.super.New(self)
     o.comboFrames = nil
     o.runeFrames = nil
     o.lastCount = 0

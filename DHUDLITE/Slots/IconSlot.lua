@@ -8,7 +8,7 @@ local Settings = ns.Settings
 local TrackerHelper = ns.TrackerHelper
 
 function IconSlot:New()
-    local o = IconSlot.__index.New(self)
+    local o = IconSlot.super.New(self)
     o.pvpIcon = nil
     o.stateIcon = nil
     o.eliteIcon = nil

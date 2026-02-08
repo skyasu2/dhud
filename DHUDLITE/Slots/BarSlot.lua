@@ -17,7 +17,7 @@ local VT_POWER = 1
 local VT_POWER_EMPTY = 0
 
 function BarSlot:New(slotName, barType)
-    local o = BarSlot.__index.New(self)
+    local o = BarSlot.super.New(self)
     o.slotName = slotName
     o.barType = barType -- "health" or "power"
     o.renderer = nil

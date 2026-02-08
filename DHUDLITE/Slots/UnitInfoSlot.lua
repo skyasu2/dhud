@@ -7,7 +7,7 @@ local Colorize = ns.Colorize
 local TextFormat = ns.TextFormat
 
 function UnitInfoSlot:New()
-    local o = UnitInfoSlot.__index.New(self)
+    local o = UnitInfoSlot.super.New(self)
     o.textField1 = nil -- name + level line
     o.textField2 = nil -- class / creature type line
     o.unitId = "target"
