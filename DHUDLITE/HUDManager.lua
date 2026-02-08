@@ -83,35 +83,33 @@ local function SetupBarSlot(slotName)
     return slot
 end
 
-local function SetupCastBarSlot(side)
-    local settingKey = (side == "left") and "leftCastBar" or "rightCastBar"
-    local unitId = Settings:Get(settingKey) or ((side == "left") and "player" or "target")
-    if unitId == "" then return nil end
+local function SetupCastBarSlot(role) -- "player" or "target"
+    local side = Settings:Get(role .. "CastBar") -- "right", "left", or "off"
+    if not side or side == "off" or side == "" then return nil, nil end
 
-    local clippingId = "CastingBarB1"
-    local castFrames = (side == "left") and Layout.leftCastFrames or Layout.rightCastFrames
-    if not castFrames then return nil end
+    local unitId = (role == "player") and "player" or "target"
+    local setKey = role .. (side == "left" and "Left" or "Right")
+    local castFrames = Layout.castFrameSets and Layout.castFrameSets[setKey]
+    if not castFrames then return nil, nil end
 
+    local clippingId = "CastingBarB2"
     local renderer = ns.CastBarRenderer:New(clippingId, side)
     local parentFrame = Layout:GetBarParent(side .. "Big1")
     renderer:SetFrames(
-        castFrames[1], -- castFrame
-        castFrames[2], -- flashFrame
-        castFrames[3], -- iconFrame
-        castFrames[4], -- spellNameFrame
-        castFrames[5], -- castTimeFrame
-        castFrames[6], -- delayFrame
+        castFrames[1], castFrames[2], castFrames[3],
+        castFrames[4], castFrames[5], castFrames[6],
         parentFrame
     )
 
+    local key = "cast_" .. role
     local tracker = ns.CastTracker:New(unitId)
-    trackers["cast_" .. side] = tracker
+    trackers[key] = tracker
 
     local slot = ns.CastBarSlot:New(side)
     slot:Init(renderer, unitId)
     slot.tracker = tracker
 
-    return slot
+    return slot, key
 end
 
 local function SetupResourceSlot()
@@ -161,9 +159,11 @@ function HUDManager:Init()
         end
     end
 
-    -- Setup cast bar slots
-    castBarSlots["left"] = SetupCastBarSlot("left")
-    castBarSlots["right"] = SetupCastBarSlot("right")
+    -- Setup cast bar slots (by role, not side)
+    local playerCast, pKey = SetupCastBarSlot("player")
+    if playerCast then castBarSlots[pKey] = playerCast end
+    local targetCast, tKey = SetupCastBarSlot("target")
+    if targetCast then castBarSlots[tKey] = targetCast end
 
     -- Setup resource slot
     resourceSlot = SetupResourceSlot()
@@ -198,8 +198,8 @@ function HUDManager:Init()
     end
     local slotKeys = { "leftBig1","leftBig2","leftSmall1","leftSmall2","rightBig1","rightBig2","rightSmall1","rightSmall2" }
     for _, k in ipairs(slotKeys) do watchSlot(k) end
-    Settings:OnChange("leftCastBar", self, function() self:RebuildCastSlot("left") end)
-    Settings:OnChange("rightCastBar", self, function() self:RebuildCastSlot("right") end)
+    Settings:OnChange("playerCastBar", self, function() self:RebuildCastSlot("player") end)
+    Settings:OnChange("targetCastBar", self, function() self:RebuildCastSlot("target") end)
 
     -- Expose for debug
     self.barSlots = barSlots
@@ -237,7 +237,7 @@ function HUDManager:Cleanup()
         "castUpdateRate",
         "leftBig1", "leftBig2", "leftSmall1", "leftSmall2",
         "rightBig1", "rightBig2", "rightSmall1", "rightSmall2",
-        "leftCastBar", "rightCastBar",
+        "playerCastBar", "targetCastBar",
     }
     for _, key in ipairs(settingKeys) do
         Settings:OffChange(key, self)
@@ -366,10 +366,15 @@ function HUDManager:RebuildSlot(slotName)
     end
 end
 
--- Rebuild the cast bar slot for a side
-function HUDManager:RebuildCastSlot(side)
-    local old = castBarSlots[side]
+-- Rebuild the cast bar slot for a role ("player" or "target")
+function HUDManager:RebuildCastSlot(role)
+    local key = "cast_" .. role
+    local old = castBarSlots[key]
     if old then old:Deactivate() end
-    castBarSlots[side] = SetupCastBarSlot(side)
-    if castBarSlots[side] then castBarSlots[side]:Activate() end
+    castBarSlots[key] = nil
+    local slot, newKey = SetupCastBarSlot(role)
+    if slot and newKey then
+        castBarSlots[newKey] = slot
+        slot:Activate()
+    end
 end

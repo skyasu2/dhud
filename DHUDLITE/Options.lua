@@ -25,7 +25,7 @@ local function BuildControls(panel)
 
     -- Create Content Frame (Child)
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(scrollFrame:GetWidth(), 550) -- Initial approximate height, can be increased
+    content:SetSize(scrollFrame:GetWidth(), 650) -- Increased for cast bar position dropdowns
     scrollFrame:SetScrollChild(content)
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -121,9 +121,52 @@ local function BuildControls(panel)
     semi:SetScript("OnClick", function() setCastRate("semi") end)
     normal:SetScript("OnClick", function() setCastRate("normal") end)
 
+    -- Cast bar position dropdowns
+    local castPosLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    castPosLabel:SetPoint("TOPLEFT", semi, "BOTTOMLEFT", 0, -30)
+    castPosLabel:SetText("Cast Bar Position")
+
+    local castPosChoices = {
+        { v = "right", t = "Right (Power Bar)" },
+        { v = "left",  t = "Left (Health Bar)" },
+        { v = "off",   t = "Off" },
+    }
+
+    local function makeCastPosDD(settingKey, label, anchorFrame, xOff, yOff)
+        local dd = CreateFrame("Frame", "DHUDLITE_CastPos_" .. settingKey, content, "UIDropDownMenuTemplate")
+        dd:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", xOff, yOff)
+        local lbl = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        lbl:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 16, 0)
+        lbl:SetText(label)
+        UIDropDownMenu_SetWidth(dd, 180)
+        UIDropDownMenu_Initialize(dd, function()
+            for _, o in ipairs(castPosChoices) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = o.t
+                info.func = function()
+                    UIDropDownMenu_SetSelectedValue(dd, o.v)
+                    UIDropDownMenu_SetText(dd, o.t)
+                    ns.Settings:Set(settingKey, o.v)
+                    if ns.HUDManager then
+                        ns.HUDManager:DeactivateAll()
+                        ns.HUDManager:Cleanup()
+                        ns.HUDManager:Init()
+                    end
+                end
+                info.value = o.v
+                info.checked = (ns.Settings:Get(settingKey) == o.v)
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+        return dd
+    end
+
+    local ddPlayerCast = makeCastPosDD("playerCastBar", "Player Cast Bar", castPosLabel, 0, -8)
+    local ddTargetCast = makeCastPosDD("targetCastBar", "Target Cast Bar", castPosLabel, 260, -8)
+
     -- Threat coloring toggle
     local threat = CreateFrame("CheckButton", "DHUDLITE_ThreatColor", content, "UICheckButtonTemplate")
-    threat:SetPoint("TOPLEFT", normal, "BOTTOMLEFT", -16, -12)
+    threat:SetPoint("TOPLEFT", ddPlayerCast, "BOTTOMLEFT", 16, -12)
     local thText = _G[threat:GetName() .. "Text"] or threat.Text
     if thText then thText:SetText("Threat Coloring (Target Health)") end
     threat:SetScript("OnClick", function(self)
@@ -200,6 +243,16 @@ local function BuildControls(panel)
         end
         threat:SetChecked(ns.Settings:Get("threatColoring") and true or false)
         res:SetChecked(ns.Settings:Get("showResources") and true or false)
+        -- Cast bar position dropdowns
+        local function refreshCastDD(dd, key)
+            local val = ns.Settings:Get(key) or "right"
+            UIDropDownMenu_SetSelectedValue(dd, val)
+            for _, c in ipairs(castPosChoices) do
+                if c.v == val then UIDropDownMenu_SetText(dd, c.t) break end
+            end
+        end
+        refreshCastDD(ddPlayerCast, "playerCastBar")
+        refreshCastDD(ddTargetCast, "targetCastBar")
     end)
 
     -- Slot assignment dropdowns

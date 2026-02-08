@@ -106,9 +106,13 @@ function Layout:CreateFrames()
         end
     end
 
-    -- Cast bar frames (left = player, right = target)
-    self:CreateCastBarFrames("left")
-    self:CreateCastBarFrames("right")
+    -- Cast bar frames: 4 sets (player×left, player×right, target×left, target×right)
+    self.castFrameSets = {
+        playerLeft  = self:CreateCastBarSet("DHUDLITE_PCastL", "left"),
+        playerRight = self:CreateCastBarSet("DHUDLITE_PCastR", "right"),
+        targetLeft  = self:CreateCastBarSet("DHUDLITE_TCastL", "left"),
+        targetRight = self:CreateCastBarSet("DHUDLITE_TCastR", "right"),
+    }
 
     -- Center text frames (unit info)
     self.centerText1 = FF:CreateTextFrame("DHUDLITE_Center_TextInfo1", "DHUDLITE_UIParent",
@@ -201,16 +205,15 @@ function Layout:UpdateBackground(side, mask)
     tex:SetTexCoord(x0, x1, y0, y1)
 end
 
-function Layout:CreateCastBarFrames(side)
-    local prefix = (side == "left") and "DHUDLITE_Left" or "DHUDLITE_Right"
-    local parent = prefix .. "_BarsBackground"
+function Layout:CreateCastBarSet(prefix, side)
+    local parent = (side == "left") and "DHUDLITE_Left_BarsBackground" or "DHUDLITE_Right_BarsBackground"
     local mirror = (side == "right")
     local textAlign = (side == "left") and "LEFT" or "RIGHT"
     local textOffX = (side == "left") and 60 or -60
     local iconOffX = (side == "left") and 60 or -60
     local timeOffX = (side == "left") and 30 or -30
-    local texName = "CastingBarB1"
-    local flashTexName = "CastFlashBarB1"
+    local texName = "CastingBarB2"
+    local flashTexName = "CastFlashBarB2"
 
     local castFrame = FF:CreateCastBarFrame(prefix .. "_CastBar", parent,
         "BOTTOM", "BOTTOM", 0, 0, BAR_WIDTH, BAR_HEIGHT, texName, mirror)
@@ -233,11 +236,7 @@ function Layout:CreateCastBarFrames(side)
     castTimeFrame:Hide()
     delayFrame:Hide()
 
-    if side == "left" then
-        self.leftCastFrames = { castFrame, flashFrame, iconFrame, spellNameFrame, castTimeFrame, delayFrame }
-    else
-        self.rightCastFrames = { castFrame, flashFrame, iconFrame, spellNameFrame, castTimeFrame, delayFrame }
-    end
+    return { castFrame, flashFrame, iconFrame, spellNameFrame, castTimeFrame, delayFrame }
 end
 
 function Layout:CreateIconFrames()
@@ -438,18 +437,14 @@ function Layout:RefreshFonts()
     -- Center info
     if self.centerText1 then set(self.centerText1.textField, sizeInfo) end
     if self.centerText2 then set(self.centerText2.textField, sizeInfo) end
-    -- Cast bars
-    if self.leftCastFrames then
-        local _, _, _, nameF, timeF, delayF = unpack(self.leftCastFrames)
-        if nameF and nameF.textField then set(nameF.textField, sizeCast) end
-        if timeF and timeF.textField then set(timeF.textField, sizeCast) end
-        if delayF and delayF.textField then set(delayF.textField, sizeCast) end
-    end
-    if self.rightCastFrames then
-        local _, _, _, nameF, timeF, delayF = unpack(self.rightCastFrames)
-        if nameF and nameF.textField then set(nameF.textField, sizeCast) end
-        if timeF and timeF.textField then set(timeF.textField, sizeCast) end
-        if delayF and delayF.textField then set(delayF.textField, sizeCast) end
+    -- Cast bars (all 4 sets)
+    if self.castFrameSets then
+        for _, frames in pairs(self.castFrameSets) do
+            local _, _, _, nameF, timeF, delayF = unpack(frames)
+            if nameF and nameF.textField then set(nameF.textField, sizeCast) end
+            if timeF and timeF.textField then set(timeF.textField, sizeCast) end
+            if delayF and delayF.textField then set(delayF.textField, sizeCast) end
+        end
     end
 end
 

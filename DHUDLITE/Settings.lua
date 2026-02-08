@@ -78,9 +78,9 @@ local defaults = {
     rightBig2 = "targetPower",
     rightSmall1 = "totHealth",
     rightSmall2 = "totPower",
-    -- Cast bars
-    leftCastBar = "player",
-    rightCastBar = "target",
+    -- Cast bars: "right", "left", or "off"
+    playerCastBar = "right",
+    targetCastBar = "right",
     -- Resources (클래스 리소스 표시)
     showResources = true,
     -- Icons
