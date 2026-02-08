@@ -211,6 +211,9 @@ function HUDManager:Init()
     Settings:OnChange("leftCastBar", self, function() self:RebuildCastSlot("left") end)
     Settings:OnChange("rightCastBar", self, function() self:RebuildCastSlot("right") end)
 
+    -- Expose for debug
+    self.barSlots = barSlots
+
     -- Activate all slots
     self:ActivateAll()
 end
