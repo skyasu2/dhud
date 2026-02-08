@@ -45,6 +45,9 @@ function PowerTracker:StartTracking()
     self:UpdatePowerType()
     self:UpdateAllData()
 
+    -- Also update on timer for secret values safety
+    ns.TrackerHelper.events:On("Update", self, self.UpdatePower)
+
     -- React to vehicle/player caster unit changes
     ns.TrackerHelper.events:On("VehicleChanged", self, self.OnVehicleChanged)
 end
@@ -56,6 +59,7 @@ function PowerTracker:StopTracking()
     ef:UnregisterEvent("UNIT_POWER_UPDATE")
     ef:UnregisterEvent("UNIT_MAXPOWER")
     ef:UnregisterEvent("UNIT_DISPLAYPOWER")
+    ns.TrackerHelper.events:Off("Update", self, self.UpdatePower)
     ns.TrackerHelper.events:Off("VehicleChanged", self, self.OnVehicleChanged)
 end
 

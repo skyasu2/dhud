@@ -74,51 +74,76 @@ function BarSlot:UpdateHealth()
     local t = self.tracker
     local amountMax = t.amountMax
     local amount = t.amount
-    local absorbed = Settings:Get("showHealthHealAbsorb") and t.amountHealAbsorb or 0
-    local reduced = Settings:Get("showHealthReduce") and t.amountMaxHealthReduce or 0
-    local shield = Settings:Get("showHealthShield") and t.amountExtra or 0
-    local heal = Settings:Get("showHealthHealIncoming") and t.amountHealIncoming or 0
 
-    if absorbed > amount then absorbed = amount end
-    local amountNonAbsorbed = amount - absorbed
+    -- Secret Values safety: check if values are accessible (IceHUD pattern)
+    local canAccess = not canaccessvalue or canaccessvalue(amount)
 
-    if heal + amount > amountMax then
-        heal = amountMax - amount
-        if heal < 0 then heal = 0 end
+    -- Percent fallback via UnitHealthPercent API (12.0.0+)
+    local healthPct
+    if UnitHealthPercent then
+        healthPct = (UnitHealthPercent(self.unitId, true) or 0) / 100
+    else
+        healthPct = (amountMax > 0) and (amount / amountMax) or 0
     end
 
-    local amountTotalPlusShield = amountMax
-    local shieldMax = t.amountExtraMax or shield
-    if amount + shieldMax > amountMax then
-        amountTotalPlusShield = amount + shieldMax
-        if not Settings:Get("showHealthShieldOverMax") then
-            if amount <= amountMax * 0.95 then
-                amountTotalPlusShield = amountMax
-            else
-                amountTotalPlusShield = math.min(amountTotalPlusShield, amount + amountMax * 0.05)
+    local sigHeight
+
+    if canAccess then
+        local absorbed = Settings:Get("showHealthHealAbsorb") and t.amountHealAbsorb or 0
+        local reduced = Settings:Get("showHealthReduce") and t.amountMaxHealthReduce or 0
+        local shield = Settings:Get("showHealthShield") and t.amountExtra or 0
+        local heal = Settings:Get("showHealthHealIncoming") and t.amountHealIncoming or 0
+
+        if absorbed > amount then absorbed = amount end
+        local amountNonAbsorbed = amount - absorbed
+
+        if heal + amount > amountMax then
+            heal = amountMax - amount
+            if heal < 0 then heal = 0 end
+        end
+
+        local amountTotalPlusShield = amountMax
+        local shieldMax = t.amountExtraMax or shield
+        if amount + shieldMax > amountMax then
+            amountTotalPlusShield = amount + shieldMax
+            if not Settings:Get("showHealthShieldOverMax") then
+                if amount <= amountMax * 0.95 then
+                    amountTotalPlusShield = amountMax
+                else
+                    amountTotalPlusShield = math.min(amountTotalPlusShield, amount + amountMax * 0.05)
+                end
             end
         end
+
+        if shield + amount > amountTotalPlusShield then
+            shield = amountTotalPlusShield - amount
+            if shield < 0 then shield = 0 end
+        end
+
+        if amountTotalPlusShield <= 0 then amountTotalPlusShield = 1 end
+
+        self.valuesInfo[1] = VT_HEALTH
+        self.valuesInfo[2] = VT_ABSORB
+        self.valuesInfo[3] = VT_REDUCE
+        self.valuesInfo[4] = VT_SHIELD
+        self.valuesInfo[5] = VT_HEAL
+        self.valuesHeight[1] = amountNonAbsorbed / amountTotalPlusShield
+        self.valuesHeight[2] = absorbed / amountTotalPlusShield
+        self.valuesHeight[3] = reduced / amountTotalPlusShield
+        self.valuesHeight[4] = shield / amountTotalPlusShield
+        self.valuesHeight[5] = heal / amountTotalPlusShield
+
+        sigHeight = amountMax / amountTotalPlusShield
+    else
+        -- Secret Values fallback: use percent API, no extra layers
+        self.valuesInfo[1] = VT_HEALTH
+        self.valuesHeight[1] = healthPct
+        for i = 2, 5 do
+            self.valuesInfo[i] = 0
+            self.valuesHeight[i] = 0
+        end
+        sigHeight = 1
     end
-
-    if shield + amount > amountTotalPlusShield then
-        shield = amountTotalPlusShield - amount
-        if shield < 0 then shield = 0 end
-    end
-
-    if amountTotalPlusShield <= 0 then amountTotalPlusShield = 1 end
-
-    self.valuesInfo[1] = VT_HEALTH
-    self.valuesInfo[2] = VT_ABSORB
-    self.valuesInfo[3] = VT_REDUCE
-    self.valuesInfo[4] = VT_SHIELD
-    self.valuesInfo[5] = VT_HEAL
-    self.valuesHeight[1] = amountNonAbsorbed / amountTotalPlusShield
-    self.valuesHeight[2] = absorbed / amountTotalPlusShield
-    self.valuesHeight[3] = reduced / amountTotalPlusShield
-    self.valuesHeight[4] = shield / amountTotalPlusShield
-    self.valuesHeight[5] = heal / amountTotalPlusShield
-
-    local sigHeight = amountMax / amountTotalPlusShield
     local unitId = self.unitId
     local noCreditForKill = t.noCreditForKill
 
@@ -166,23 +191,35 @@ function BarSlot:UpdatePower()
 
     if range <= 0 then range = 1 end
 
-    if amountMin == 0 then
+    -- Secret Values safety
+    local canAccess = not canaccessvalue or canaccessvalue(amount)
+
+    if canAccess then
+        if amountMin == 0 then
+            self.valuesInfo[1] = VT_POWER_EMPTY
+            self.valuesInfo[2] = VT_POWER
+            self.valuesHeight[1] = 0
+            self.valuesHeight[2] = amount / range
+        else
+            if amount >= 0 then
+                self.valuesInfo[1] = VT_POWER_EMPTY
+                self.valuesInfo[2] = VT_POWER
+                self.valuesHeight[1] = -amountMin / range
+                self.valuesHeight[2] = amount / range
+            else
+                self.valuesInfo[1] = VT_POWER
+                self.valuesInfo[2] = VT_POWER_EMPTY
+                self.valuesHeight[1] = (amount - amountMin) / range
+                self.valuesHeight[2] = -amount / range
+            end
+        end
+    else
+        -- Secret Values fallback: approximate percent from amountMax
+        local pct = (amountMax > 0) and (amount / amountMax) or 0
         self.valuesInfo[1] = VT_POWER_EMPTY
         self.valuesInfo[2] = VT_POWER
         self.valuesHeight[1] = 0
-        self.valuesHeight[2] = amount / range
-    else
-        if amount >= 0 then
-            self.valuesInfo[1] = VT_POWER_EMPTY
-            self.valuesInfo[2] = VT_POWER
-            self.valuesHeight[1] = -amountMin / range
-            self.valuesHeight[2] = amount / range
-        else
-            self.valuesInfo[1] = VT_POWER
-            self.valuesInfo[2] = VT_POWER_EMPTY
-            self.valuesHeight[1] = (amount - amountMin) / range
-            self.valuesHeight[2] = -amount / range
-        end
+        self.valuesHeight[2] = pct
     end
 
     -- Trim arrays to 2

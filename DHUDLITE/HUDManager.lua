@@ -262,6 +262,19 @@ function HUDManager:OnTargetChanged()
                 if tracker.UpdateAllData then
                     tracker:UpdateAllData()
                 end
+            else
+                if tracker.isTracking and tracker.StopTracking then
+                    tracker:StopTracking()
+                end
+            end
+        end
+    end
+    -- Hide target bar slots when target lost
+    if not TrackerHelper.isTargetAvailable then
+        for slotName, slot in pairs(barSlots) do
+            if slot.unitId == "target" then
+                if slot.renderer then slot.renderer:HideBar() end
+                if slot.textField then slot.textField:DSetText("") end
             end
         end
     end
@@ -281,6 +294,15 @@ function HUDManager:OnTargetOfTargetChanged()
                 if tracker.isTracking and tracker.StopTracking then
                     tracker:StopTracking()
                 end
+            end
+        end
+    end
+    -- Hide targettarget bar slots when ToT lost
+    if not TrackerHelper.isTargetOfTargetAvailable then
+        for slotName, slot in pairs(barSlots) do
+            if slot.unitId == "targettarget" then
+                if slot.renderer then slot.renderer:HideBar() end
+                if slot.textField then slot.textField:DSetText("") end
             end
         end
     end

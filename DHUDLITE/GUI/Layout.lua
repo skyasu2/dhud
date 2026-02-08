@@ -72,6 +72,9 @@ function Layout:CreateFrames()
             "BOTTOM", "BOTTOM", 0, 0, BAR_WIDTH, BAR_HEIGHT, "TexturePrefixBarS2", true)
     end, 3)
 
+    -- Pre-create dynamic bar segments BEFORE text frames so text renders on top
+    self:WarmupBarGroups()
+
     -- Text frames for bar values (left side)
     self.leftBig1Text = FF:CreateTextFrame("DHUDLITE_Left_TextBig1", "DHUDLITE_Left_BarsBackground",
         "LEFT", "BOTTOM", 60, 5, nil, 14, "LEFT", "MIDDLE", "numeric")
@@ -92,6 +95,17 @@ function Layout:CreateFrames()
     self.rightSmall2Text = FF:CreateTextFrame("DHUDLITE_Right_TextSmall2", "DHUDLITE_Right_BarsBackground",
         "RIGHT", "BOTTOM", 10, 5, nil, 14, "RIGHT", "MIDDLE", "numeric")
 
+    -- Ensure text frames render above bar textures
+    local textFrames = {
+        self.leftBig1Text, self.leftBig2Text, self.leftSmall1Text, self.leftSmall2Text,
+        self.rightBig1Text, self.rightBig2Text, self.rightSmall1Text, self.rightSmall2Text,
+    }
+    for _, tf in ipairs(textFrames) do
+        if tf and tf.SetFrameLevel then
+            tf:SetFrameLevel(tf:GetFrameLevel() + 10)
+        end
+    end
+
     -- Cast bar frames (left = player, right = target)
     self:CreateCastBarFrames("left")
     self:CreateCastBarFrames("right")
@@ -107,9 +121,6 @@ function Layout:CreateFrames()
 
     -- Combo point / resource frames
     self:CreateResourceFrames()
-
-    -- Pre-create dynamic bar segments to avoid frame creation during combat
-    self:WarmupBarGroups()
 
     -- React to setting changes
     ns.Settings:OnChange("barsDistanceDiv2", self, function(_, key, value)

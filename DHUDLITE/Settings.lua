@@ -88,7 +88,7 @@ local defaults = {
     leftSmall1 = "",
     leftSmall2 = "",
     rightBig1 = "playerPower",
-    rightBig2 = "",
+    rightBig2 = "targetPower",
     rightSmall1 = "totHealth",
     rightSmall2 = "totPower",
     -- Cast bars
