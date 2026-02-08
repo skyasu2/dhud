@@ -96,29 +96,9 @@ function BarSlot:UpdateHealth()
         local amountMax = t.amountMax
         if amountMax <= 0 then amountMax = 1 end
         healthPct = t.amount / amountMax
-    end
-    -- Fallback: UnitHealthPercent API - try multiple param combos until accessible
-    if not healthPct and UnitHealthPercent then
-        local raw
-        -- 1) CurveConstants.ScaleTo100 (IceHUD pattern)
-        local s100 = CurveConstants and CurveConstants.ScaleTo100
-        if s100 then
-            raw = UnitHealthPercent(self.unitId, true, s100)
-            if raw and _cav and not _cav(raw) then raw = nil end
-        end
-        -- 2) plain UnitHealthPercent(unit) → 0-100
-        if not raw then
-            raw = UnitHealthPercent(self.unitId)
-            if raw and _cav and not _cav(raw) then raw = nil end
-        end
-        -- 3) UnitHealthPercent(unit, true) → 0-1 ratio
-        if not raw then
-            raw = UnitHealthPercent(self.unitId, true)
-            if raw and _cav and not _cav(raw) then raw = nil end
-        end
-        if raw then
-            healthPct = (raw > 1) and (raw / 100) or raw
-        end
+    elseif UnitHealthPercent and CurveConstants then
+        -- IceHUD pattern: CurveConstants.ZeroToOne returns accessible 0-1 value
+        healthPct = UnitHealthPercent(self.unitId, true, CurveConstants.ZeroToOne)
     end
     if not healthPct then healthPct = 1 end
 
@@ -253,13 +233,10 @@ function BarSlot:UpdatePower()
             end
         end
     else
-        -- Secret Values fallback: try UnitPowerPercent if available
+        -- Secret Values fallback: IceHUD pattern with 4 args
         local pct = 0
-        if UnitPowerPercent then
-            local raw = UnitPowerPercent(self.unitId, t.resourceType)
-            if raw and (not _cav or _cav(raw)) then
-                pct = (raw > 1) and (raw / 100) or raw
-            end
+        if UnitPowerPercent and CurveConstants then
+            pct = UnitPowerPercent(self.unitId, t.resourceType, true, CurveConstants.ZeroToOne) or 0
         end
         self.valuesInfo[1] = VT_POWER_EMPTY
         self.valuesInfo[2] = VT_POWER

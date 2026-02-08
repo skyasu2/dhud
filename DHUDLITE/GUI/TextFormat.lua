@@ -59,6 +59,17 @@ function TextFormat:FormatPercent(current, maximum)
     return string.format("%d%%", math.floor(current * 100 / maximum))
 end
 
+-- Get accessible percentage via Blizzard API (IceHUD pattern: CurveConstants.ScaleTo100 → 0-100)
+local function _getSecretPercent(kind, tracker)
+    if not CurveConstants then return nil end
+    if kind == "textFormatHealth" and UnitHealthPercent then
+        return UnitHealthPercent(tracker.unitId, true, CurveConstants.ScaleTo100)
+    elseif kind == "textFormatPower" and UnitPowerPercent then
+        return UnitPowerPercent(tracker.unitId, tracker.resourceType, true, CurveConstants.ScaleTo100)
+    end
+    return nil
+end
+
 -- IceHUD-like flexible text formats
 local function format_by_key(kind, tracker)
     local fmt = ns.Settings:Get(kind) or "value+percent"
@@ -70,10 +81,18 @@ local function format_by_key(kind, tracker)
     elseif fmt == "value" then
         return TextFormat:FormatNumber(cur)
     elseif fmt == "percent" then
-        if isSecret then return "" end
+        if isSecret then
+            local pct = _getSecretPercent(kind, tracker)
+            if pct then return string.format("%.0f%%", pct) end
+            return ""
+        end
         return TextFormat:FormatPercent(cur, max)
     elseif fmt == "value+percent" then
-        if isSecret then return TextFormat:FormatNumber(cur) end
+        if isSecret then
+            local pct = _getSecretPercent(kind, tracker)
+            if pct then return string.format("%s (%.0f%%)", TextFormat:FormatNumber(cur), pct) end
+            return TextFormat:FormatNumber(cur)
+        end
         return string.format("%s (%s)", TextFormat:FormatNumber(cur), TextFormat:FormatPercent(cur, max))
     elseif fmt == "deficit" then
         if isSecret then return "" end
@@ -81,7 +100,11 @@ local function format_by_key(kind, tracker)
         if deficit <= 0 then return "" end
         return string.format("-%s", TextFormat:FormatNumber(deficit))
     end
-    if isSecret then return TextFormat:FormatNumber(cur) end
+    if isSecret then
+        local pct = _getSecretPercent(kind, tracker)
+        if pct then return string.format("%s (%.0f%%)", TextFormat:FormatNumber(cur), pct) end
+        return TextFormat:FormatNumber(cur)
+    end
     return string.format("%s / %s", TextFormat:FormatNumber(cur), TextFormat:FormatNumber(max))
 end
 
