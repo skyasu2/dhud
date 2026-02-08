@@ -25,7 +25,7 @@ local function BuildControls(panel)
 
     -- Create Content Frame (Child)
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(scrollFrame:GetWidth(), 650) -- Increased for cast bar position dropdowns
+    content:SetSize(scrollFrame:GetWidth(), 780) -- Increased for profile section + cast bar position dropdowns
     scrollFrame:SetScrollChild(content)
 
     local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -46,9 +46,159 @@ local function BuildControls(panel)
         "현재 버전: v" .. (GetMeta(ADDON_NAME, "Version") or "")
     ))
 
+    -- ============================================================
+    -- Profile section
+    -- ============================================================
+    local profLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    profLabel:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -20)
+    profLabel:SetText("Profile")
+
+    -- Profile dropdown
+    local profDD = CreateFrame("Frame", "DHUDLITE_ProfileDD", content, "UIDropDownMenuTemplate")
+    profDD:SetPoint("TOPLEFT", profLabel, "BOTTOMLEFT", -16, -4)
+    UIDropDownMenu_SetWidth(profDD, 180)
+
+    local function RefreshProfileDropdown()
+        local list = ns.Settings:GetProfileList()
+        local current = ns.Settings:GetProfileName()
+        UIDropDownMenu_Initialize(profDD, function()
+            for _, name in ipairs(list) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = name
+                info.value = name
+                info.func = function()
+                    UIDropDownMenu_SetSelectedValue(profDD, name)
+                    UIDropDownMenu_SetText(profDD, name)
+                    ns.Settings:SetProfile(name)
+                end
+                info.checked = (name == current)
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+        UIDropDownMenu_SetSelectedValue(profDD, current)
+        UIDropDownMenu_SetText(profDD, current)
+    end
+
+    -- Static popups for profile operations
+    StaticPopupDialogs["DHUDLITE_NEW_PROFILE"] = {
+        text = "Enter new profile name:",
+        button1 = "Create",
+        button2 = "Cancel",
+        hasEditBox = true,
+        OnAccept = function(self)
+            local name = strtrim(self.editBox:GetText())
+            if name ~= "" then
+                ns.Settings:CreateProfile(name)
+                RefreshProfileDropdown()
+            end
+        end,
+        EditBoxOnEnterPressed = function(self)
+            local parent = self:GetParent()
+            local name = strtrim(self:GetText())
+            if name ~= "" then
+                ns.Settings:CreateProfile(name)
+                RefreshProfileDropdown()
+            end
+            parent:Hide()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
+    StaticPopupDialogs["DHUDLITE_DELETE_PROFILE"] = {
+        text = "Delete profile '%s'?",
+        button1 = "Delete",
+        button2 = "Cancel",
+        OnAccept = function(self, data)
+            if ns.Settings:DeleteProfile(data) then
+                RefreshProfileDropdown()
+            end
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
+    -- Buttons row
+    local btnNew = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+    btnNew:SetSize(80, 22)
+    btnNew:SetPoint("LEFT", profDD, "RIGHT", 4, 2)
+    btnNew:SetText("New")
+    btnNew:SetScript("OnClick", function() StaticPopup_Show("DHUDLITE_NEW_PROFILE") end)
+
+    local btnDelete = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+    btnDelete:SetSize(80, 22)
+    btnDelete:SetPoint("LEFT", btnNew, "RIGHT", 4, 0)
+    btnDelete:SetText("Delete")
+    btnDelete:SetScript("OnClick", function()
+        local current = ns.Settings:GetProfileName()
+        local dialog = StaticPopup_Show("DHUDLITE_DELETE_PROFILE", current)
+        if dialog then dialog.data = current end
+    end)
+
+    -- Copy From dropdown + button
+    local copyDD = CreateFrame("Frame", "DHUDLITE_CopyFromDD", content, "UIDropDownMenuTemplate")
+    copyDD:SetPoint("TOPLEFT", profDD, "BOTTOMLEFT", 0, -4)
+    UIDropDownMenu_SetWidth(copyDD, 180)
+
+    local copySource = nil
+    local function RefreshCopyDropdown()
+        local list = ns.Settings:GetProfileList()
+        local current = ns.Settings:GetProfileName()
+        copySource = nil
+        UIDropDownMenu_Initialize(copyDD, function()
+            for _, name in ipairs(list) do
+                if name ~= current then
+                    local info = UIDropDownMenu_CreateInfo()
+                    info.text = name
+                    info.value = name
+                    info.func = function()
+                        copySource = name
+                        UIDropDownMenu_SetSelectedValue(copyDD, name)
+                        UIDropDownMenu_SetText(copyDD, name)
+                    end
+                    UIDropDownMenu_AddButton(info)
+                end
+            end
+        end)
+        UIDropDownMenu_SetText(copyDD, "Copy from...")
+    end
+
+    local btnCopy = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+    btnCopy:SetSize(80, 22)
+    btnCopy:SetPoint("LEFT", copyDD, "RIGHT", 4, 2)
+    btnCopy:SetText("Copy")
+    btnCopy:SetScript("OnClick", function()
+        if copySource then
+            ns.Settings:CopyProfile(copySource)
+            RefreshProfileDropdown()
+            RefreshCopyDropdown()
+        else
+            ns.Print("Select a source profile to copy from.")
+        end
+    end)
+
+    local btnReset = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+    btnReset:SetSize(80, 22)
+    btnReset:SetPoint("LEFT", btnCopy, "RIGHT", 4, 0)
+    btnReset:SetText("Reset")
+    btnReset:SetScript("OnClick", function()
+        ns.Settings:ResetProfile()
+        RefreshProfileDropdown()
+    end)
+
+    -- Wire PostProfileChanged to refresh UI
+    ns.events:On("PostProfileChanged", profDD, function()
+        RefreshProfileDropdown()
+        RefreshCopyDropdown()
+    end)
+
     -- Distance slider
     local slider = CreateFrame("Slider", "DHUDLITE_DistanceSlider", content, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -30) -- Increased spacing slightly
+    slider:SetPoint("TOPLEFT", copyDD, "BOTTOMLEFT", 16, -30)
     slider:SetMinMaxValues(0, 150)
     slider:SetValueStep(5)
     slider:SetObeyStepOnDrag(true)
@@ -229,6 +379,9 @@ local function BuildControls(panel)
 
     -- Refresh control values when panel shows
     panel:HookScript("OnShow", function()
+        -- Profile dropdowns
+        RefreshProfileDropdown()
+        RefreshCopyDropdown()
         -- Ensure scrollframe updates
         local dist = ns.Settings:Get("barsDistanceDiv2") or 0
         slider:SetValue(dist)

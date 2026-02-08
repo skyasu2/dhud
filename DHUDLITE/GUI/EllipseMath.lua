@@ -47,7 +47,9 @@ end
 
 function EllipseMath:CalculateAddonPosition(angleDeg)
     local x, y = self:CalculatePosition(angleDeg)
-    x = x - self.HUD_RADIUS_X_OUTOFIMAGE + 128
+    local dist = ns.Settings:Get("barsDistanceDiv2") or 0
+    -- 텍스처 로컬(+128) 대신 화면 중앙 기준으로 변환: dist 오프셋 차감
+    x = x - self.HUD_RADIUS_X_OUTOFIMAGE - dist
     return floor(x), floor(y)
 end
 

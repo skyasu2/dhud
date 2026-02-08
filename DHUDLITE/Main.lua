@@ -24,20 +24,69 @@ function bootFrame:PLAYER_ENTERING_WORLD()
     -- Initialize alpha state machine
     ns.AlphaManager:Init()
 
-    ns.Print("v1.0.1 loaded. /dhudlite for commands.")
+    -- Profile change handlers
+    ns.events:On("PreProfileChanged", nil, function()
+        ns.HUDManager:DeactivateAll()
+        ns.HUDManager:Cleanup()
+    end)
+    ns.events:On("PostProfileChanged", nil, function()
+        ns.HUDManager:Init()
+        ns.AlphaManager:Refresh()
+        local dist = ns.Settings:Get("barsDistanceDiv2")
+        if dist then ns.Layout:SetBarsDistance(dist) end
+        ns.Layout:RefreshBarStyles()
+        ns.Layout:RefreshBackgrounds()
+        if ns.Layout.RefreshFonts then ns.Layout:RefreshFonts() end
+    end)
+
+    local profileName = ns.Settings:GetProfileName()
+    ns.Print("v1.0.2 loaded. Profile: " .. profileName .. ". /dhudlite for commands.")
 end
 
 -- Slash commands
 SLASH_DHUDLITE1 = "/dhudlite"
 SLASH_DHUDLITE2 = "/dhud"
 SlashCmdList["DHUDLITE"] = function(msg)
+    local rawMsg = strtrim(msg or "")
     -- Use WoW API helpers; Lua strings have no :trim()
-    msg = strlower(strtrim(msg or ""))
+    msg = strlower(rawMsg)
 
     if msg == "reset" then
-        DHUDLITE_DB = nil
-        ns.Settings:Init()
-        ReloadUI()
+        ns.Settings:ResetProfile()
+    elseif msg:match("^profile") then
+        -- Use rawMsg to preserve profile name case
+        local sub = rawMsg:match("^[Pp]rofile%s+(%S+.*)") or ""
+        sub = strtrim(sub)
+        local cmd = strlower(sub:match("^(%S+)") or "")
+        local arg = strtrim(sub:match("^%S+%s+(.+)") or "")
+
+        if cmd == "list" then
+            local list = ns.Settings:GetProfileList()
+            local current = ns.Settings:GetProfileName()
+            ns.Print("Profiles:")
+            for _, name in ipairs(list) do
+                local mark = (name == current) and " (active)" or ""
+                ns.Print("  " .. name .. mark)
+            end
+        elseif cmd == "use" and arg ~= "" then
+            ns.Settings:SetProfile(arg)
+        elseif cmd == "new" and arg ~= "" then
+            ns.Settings:CreateProfile(arg)
+        elseif cmd == "copy" and arg ~= "" then
+            ns.Settings:CopyProfile(arg)
+        elseif cmd == "delete" and arg ~= "" then
+            ns.Settings:DeleteProfile(arg)
+        elseif cmd == "reset" then
+            ns.Settings:ResetProfile()
+        else
+            ns.Print("Profile commands:")
+            ns.Print("  /dhudlite profile list")
+            ns.Print("  /dhudlite profile use <name>")
+            ns.Print("  /dhudlite profile new <name>")
+            ns.Print("  /dhudlite profile copy <source>")
+            ns.Print("  /dhudlite profile delete <name>")
+            ns.Print("  /dhudlite profile reset")
+        end
     elseif msg:match("^visible ") then
         local arg = msg:match("^visible%s+(%S+)") or ""
         if arg == "on" then
@@ -139,7 +188,8 @@ SlashCmdList["DHUDLITE"] = function(msg)
         ns.Print("  /dhudlite options - Open options panel")
         ns.Print("  /dhudlite move <on|off> - Toggle move mode")
         ns.Print("  /dhudlite visible <on|off> - Force HUD visible/hidden")
-        ns.Print("  /dhudlite reset - Reset all settings and reload")
+        ns.Print("  /dhudlite reset - Reset current profile to defaults")
+        ns.Print("  /dhudlite profile - Profile management")
         ns.Print("  /dhudlite debug - Show diagnostic info")
     end
 end
