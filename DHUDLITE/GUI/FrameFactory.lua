@@ -116,8 +116,12 @@ function FrameFactory:CreateTextFontString(frame, varName, pointThis, pointParen
     if autoresize then
         tf.DSetText = function(self, text)
             self:SetWidth(1000)
-            self:SetText(text)
+            self:SetText(text or "")
             local sw = self:GetStringWidth() or 0
+            -- Secret value text produces secret GetStringWidth; SetWidth rejects it
+            if issecretvalue and issecretvalue(sw) then
+                sw = 100
+            end
             self:SetWidth(sw)
             if self.frame and self.frame.resizeWithTextField then
                 self.frame:SetWidth(sw)

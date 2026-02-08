@@ -70,6 +70,12 @@ end
 
 function BarSlot:OnDataChanged()
     if not self.isActive or not self.tracker then return end
+    -- Auto-hide when unit doesn't exist (target/pet/tot)
+    if self.unitId ~= "player" and not UnitExists(self.unitId) then
+        if self.renderer then self.renderer:HideBar() end
+        if self.textField then self.textField:DSetText("") end
+        return
+    end
     if self.barType == "health" then
         self:UpdateHealth()
     else
@@ -91,12 +97,27 @@ function BarSlot:UpdateHealth()
         if amountMax <= 0 then amountMax = 1 end
         healthPct = t.amount / amountMax
     end
-    -- Fallback: UnitHealthPercent API (IceHUD pattern, CurveConstants.ScaleTo100)
+    -- Fallback: UnitHealthPercent API - try multiple param combos until accessible
     if not healthPct and UnitHealthPercent then
-        local raw = UnitHealthPercent(self.unitId, true,
-            CurveConstants and CurveConstants.ScaleTo100)
-        if raw and (not _cav or _cav(raw)) then
-            healthPct = raw / 100
+        local raw
+        -- 1) CurveConstants.ScaleTo100 (IceHUD pattern)
+        local s100 = CurveConstants and CurveConstants.ScaleTo100
+        if s100 then
+            raw = UnitHealthPercent(self.unitId, true, s100)
+            if raw and _cav and not _cav(raw) then raw = nil end
+        end
+        -- 2) plain UnitHealthPercent(unit) → 0-100
+        if not raw then
+            raw = UnitHealthPercent(self.unitId)
+            if raw and _cav and not _cav(raw) then raw = nil end
+        end
+        -- 3) UnitHealthPercent(unit, true) → 0-1 ratio
+        if not raw then
+            raw = UnitHealthPercent(self.unitId, true)
+            if raw and _cav and not _cav(raw) then raw = nil end
+        end
+        if raw then
+            healthPct = (raw > 1) and (raw / 100) or raw
         end
     end
     if not healthPct then healthPct = 1 end
@@ -232,11 +253,18 @@ function BarSlot:UpdatePower()
             end
         end
     else
-        -- Secret Values fallback: no accessible percentage API for power
+        -- Secret Values fallback: try UnitPowerPercent if available
+        local pct = 0
+        if UnitPowerPercent then
+            local raw = UnitPowerPercent(self.unitId, t.resourceType)
+            if raw and (not _cav or _cav(raw)) then
+                pct = (raw > 1) and (raw / 100) or raw
+            end
+        end
         self.valuesInfo[1] = VT_POWER_EMPTY
         self.valuesInfo[2] = VT_POWER
         self.valuesHeight[1] = 0
-        self.valuesHeight[2] = 0
+        self.valuesHeight[2] = pct
     end
 
     -- Trim arrays to 2
