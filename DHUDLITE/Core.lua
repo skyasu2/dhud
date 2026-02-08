@@ -54,9 +54,13 @@ end
 function EventBus:Fire(event, ...)
     local list = self.listeners[event]
     if not list then return end
-    for i = 1, #list do
+    -- Snapshot length so Off() during iteration doesn't skip entries
+    local n = #list
+    for i = 1, n do
         local entry = list[i]
-        entry.fn(entry.obj, ...)
+        if entry then
+            entry.fn(entry.obj, ...)
+        end
     end
 end
 

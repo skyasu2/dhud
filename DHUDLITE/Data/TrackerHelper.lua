@@ -166,6 +166,7 @@ function TrackerHelper:SetTargetAvailable(val)
 end
 
 function TrackerHelper:SetTargetOfTargetAvailable(val)
+    if self.isTargetOfTargetAvailable == val then return end
     self.isTargetOfTargetAvailable = val
     events:Fire("TargetOfTargetChanged")
 end

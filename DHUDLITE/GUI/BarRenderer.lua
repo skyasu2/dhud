@@ -190,7 +190,8 @@ function BarRenderer:RenderCurrentState()
             if self.colorFunc then
                 local sigH = self.sigHeightCurrent
                 if sigH <= 0 then sigH = 1 end
-                r, g, b = self.colorFunc(self.valuesInfo[i], heightBegin / sigH, heightEnd / sigH)
+                local cr, cg, cb = self.colorFunc(self.valuesInfo[i], heightBegin / sigH, heightEnd / sigH)
+                if cr then r, g, b = cr, cg, cb end
             end
             self:UpdateSegment(idx, heightBegin, heightEnd, r, g, b)
             heightBegin = heightEnd

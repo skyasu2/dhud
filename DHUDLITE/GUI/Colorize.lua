@@ -3,8 +3,10 @@ local ADDON_NAME, ns = ...
 local Colorize = {}
 ns.Colorize = Colorize
 
--- Reusable result tables to reduce GC
-local colorResult = { 1, 1, 1 }
+-- Reusable scratch tables for gradient calculations (avoid per-frame allocation)
+local _c1 = { 0, 0, 0 }
+local _c2 = { 0, 0, 0 }
+local _c3 = { 0, 0, 0 }
 
 -- Power type to settings key mapping
 local POWER_COLOR_KEYS = {
@@ -52,19 +54,19 @@ function Colorize:GetHealthColor(pct, unitId)
     end
     -- 3-color gradient: red (0%) -> yellow (50%) -> green (100%)
     if #hexTable >= 3 then
-        local c1 = { self:HexToRGB(hexTable[3]) } -- low HP
-        local c2 = { self:HexToRGB(hexTable[2]) } -- mid HP
-        local c3 = { self:HexToRGB(hexTable[1]) } -- full HP
+        _c1[1], _c1[2], _c1[3] = self:HexToRGB(hexTable[3]) -- low HP
+        _c2[1], _c2[2], _c2[3] = self:HexToRGB(hexTable[2]) -- mid HP
+        _c3[1], _c3[2], _c3[3] = self:HexToRGB(hexTable[1]) -- full HP
         if pct <= 0.5 then
-            return self:Lerp(pct / 0.5, c1, c2)
+            return self:Lerp(pct / 0.5, _c1, _c2)
         else
-            return self:Lerp((pct - 0.5) / 0.5, c2, c3)
+            return self:Lerp((pct - 0.5) / 0.5, _c2, _c3)
         end
     end
     -- 2-color gradient
-    local c1 = { self:HexToRGB(hexTable[2]) }
-    local c2 = { self:HexToRGB(hexTable[1]) }
-    return self:Lerp(pct, c1, c2)
+    _c1[1], _c1[2], _c1[3] = self:HexToRGB(hexTable[2])
+    _c2[1], _c2[2], _c2[3] = self:HexToRGB(hexTable[1])
+    return self:Lerp(pct, _c1, _c2)
 end
 
 function Colorize:GetHealthLayerColor(layerType, unitId)

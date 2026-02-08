@@ -110,15 +110,19 @@ function UnitInfoTracker:UpdateReaction()
     end
 end
 
+local REACTION_COLOR_KEYS = {
+    [1] = "colorReactionHostile",
+    [2] = "colorReactionNeutral",
+    [3] = "colorReactionFriendly",
+    [4] = "colorReactionFriendlyPlayer",
+    [5] = "colorReactionFriendlyPlayerPvP",
+    [6] = "colorReactionNotTapped",
+}
+
 function UnitInfoTracker:GetReactionColor()
-    local Settings = ns.Settings
-    local COLORS = {
-        [1] = Settings:Get("colorReactionHostile"),
-        [2] = Settings:Get("colorReactionNeutral"),
-        [3] = Settings:Get("colorReactionFriendly"),
-        [4] = Settings:Get("colorReactionFriendlyPlayer"),
-        [5] = Settings:Get("colorReactionFriendlyPlayerPvP"),
-        [6] = Settings:Get("colorReactionNotTapped"),
-    }
-    return COLORS[self.reaction] or "ffffff"
+    local key = REACTION_COLOR_KEYS[self.reaction]
+    if key then
+        return ns.Settings:Get(key) or "ffffff"
+    end
+    return "ffffff"
 end

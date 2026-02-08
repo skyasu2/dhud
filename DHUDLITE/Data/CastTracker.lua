@@ -122,10 +122,10 @@ function CastTracker:StopTracking()
 end
 
 function CastTracker:CheckCurrentCast()
-    local name, _, _, startMs, endMs, _, _, notInterruptible = UnitCastingInfo(self.unitId)
+    local name, _, texture, startMs, endMs, _, _, notInterruptible = UnitCastingInfo(self.unitId)
     if name then
         self.spellName = name
-        self.spellIcon = select(3, UnitCastingInfo(self.unitId)) or ""
+        self.spellIcon = texture or ""
         self.startTime = startMs / 1000
         self.endTime = endMs / 1000
         self.notInterruptible = notInterruptible or false
@@ -134,21 +134,16 @@ function CastTracker:CheckCurrentCast()
         self.events:Fire("CastChanged")
         return
     end
-    name, _, _, startMs, endMs, _, notInterruptible = UnitChannelInfo(self.unitId)
+    local numStages
+    name, _, texture, startMs, endMs, _, notInterruptible, numStages = UnitChannelInfo(self.unitId)
     if name then
         self.spellName = name
-        self.spellIcon = select(3, UnitChannelInfo(self.unitId)) or ""
+        self.spellIcon = texture or ""
         self.startTime = startMs / 1000
         self.endTime = endMs / 1000
         self.notInterruptible = notInterruptible or false
         self.delay = 0
-        -- Check if empowering
-        local numStages = 0
-        if UnitChannelInfo(self.unitId) then
-            -- Empower detection via extra args in 12.0
-            numStages = select(8, UnitChannelInfo(self.unitId)) or 0
-        end
-        if numStages > 0 then
+        if numStages and numStages > 0 then
             self.state = CastTracker.STATE_EMPOWERING
             self.empowerStages = numStages
         else
