@@ -98,6 +98,16 @@ SlashCmdList["DHUDLITE"] = function(msg)
             local ppct = UnitPowerPercent("player", pwType, true, CurveConstants.ZeroToOne)
             ns.Print("UnitPowerPercent(ZeroToOne): " .. tostring(ppct) .. " secret=" .. tostring(issecretvalue and issecretvalue(ppct) or "N/A") .. " accessible=" .. tostring(not canaccessvalue or canaccessvalue(ppct)))
         end
+        -- Slot settings
+        ns.Print("--- Slot Settings ---")
+        local slotKeys = { "leftBig1","leftBig2","leftSmall1","leftSmall2","rightBig1","rightBig2","rightSmall1","rightSmall2" }
+        for _, k in ipairs(slotKeys) do
+            local val = ns.Settings:Get(k) or "(empty)"
+            local def = ns.Settings:GetDefault(k) or "(empty)"
+            local mark = (val ~= def) and " [CHANGED]" or ""
+            ns.Print(string.format("  %s = %s%s", k, val, mark))
+        end
+
         -- Tracker state
         local hm = ns.HUDManager
         if hm and hm.barSlots then
