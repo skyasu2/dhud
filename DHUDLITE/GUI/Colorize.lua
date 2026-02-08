@@ -8,26 +8,6 @@ local _c1 = { 0, 0, 0 }
 local _c2 = { 0, 0, 0 }
 local _c3 = { 0, 0, 0 }
 
--- Power type to settings key mapping
-local POWER_COLOR_KEYS = {
-    [0]  = "colorPlayerMana",
-    [1]  = "colorPlayerRage",
-    [2]  = "colorPlayerFocus",
-    [3]  = "colorPlayerEnergy",
-    [6]  = "colorPlayerRunicPower",
-    [8]  = "colorPlayerLunarPower",
-    [11] = "colorPlayerMaelstrom",
-    [13] = "colorPlayerInsanity",
-    [17] = "colorPlayerFury",
-    [18] = "colorPlayerPain",
-}
-
-local TARGET_POWER_COLOR_KEYS = {
-    [0]  = "colorTargetMana",
-    [1]  = "colorTargetRage",
-    [3]  = "colorTargetEnergy",
-}
-
 function Colorize:HexToRGB(hex)
     local r = tonumber(hex:sub(1, 2), 16) / 255
     local g = tonumber(hex:sub(3, 4), 16) / 255
@@ -90,40 +70,27 @@ function Colorize:GetHealthLayerColor(layerType, unitId)
 end
 
 function Colorize:GetPowerColor(powerType, unitId)
-    local keys = (unitId == "player" or unitId == "vehicle") and POWER_COLOR_KEYS or TARGET_POWER_COLOR_KEYS
-    local key = keys[powerType]
-    if key then
-        local hexTable = ns.Settings:Get(key)
-        if hexTable and #hexTable > 0 then
-            return self:HexToRGB(hexTable[1])
-        end
-    end
-    -- Prefer official APIs for retail 11.0+: C_PowerBarColor / GetPowerBarColor
+    -- WoW API 직접 사용 (패치 자동 대응, 새 자원 타입 자동 지원)
+    -- 1. C_PowerBarColor (11.0+ 권장 API)
     if _G.C_PowerBarColor and _G.C_PowerBarColor.GetPowerBarColor then
         local c = _G.C_PowerBarColor.GetPowerBarColor(powerType)
-        if c then
-            if type(c) == "table" then
-                if c.r and c.g and c.b then return c.r, c.g, c.b end
-            elseif type(c) == "number" then
-                -- Some variants may return packed color; ignore
-            end
-        end
+        if c and type(c) == "table" and c.r then return c.r, c.g, c.b end
     end
+    -- 2. GetPowerBarColor with token (가장 신뢰)
     if _G.GetPowerBarColor then
         local _, token = UnitPowerType(unitId or "player")
         if token then
             local r, g, b = _G.GetPowerBarColor(token)
             if r and g and b then return r, g, b end
         end
+        -- 3. GetPowerBarColor with numeric ID
         local r, g, b = _G.GetPowerBarColor(powerType)
         if r and g and b then return r, g, b end
     end
-    -- Fallback to global table
+    -- 4. Global table 폴백
     if _G.PowerBarColor then
         local info = _G.PowerBarColor[powerType]
-        if info then
-            return info.r or 1, info.g or 1, info.b or 1
-        end
+        if info then return info.r or 1, info.g or 1, info.b or 1 end
     end
     return 1, 1, 1
 end
@@ -152,10 +119,15 @@ function Colorize:GetCastColor(state, unitId)
 end
 
 function Colorize:GetClassColor(classToken)
-    if not RAID_CLASS_COLORS then return 1, 1, 1 end
-    local colors = RAID_CLASS_COLORS[classToken]
-    if colors then
-        return colors.r, colors.g, colors.b
+    -- C_ClassColor API 우선 (10.0+)
+    if _G.C_ClassColor and _G.C_ClassColor.GetClassColor then
+        local color = _G.C_ClassColor.GetClassColor(classToken)
+        if color then return color.r, color.g, color.b end
+    end
+    -- 글로벌 테이블 폴백
+    if RAID_CLASS_COLORS then
+        local colors = RAID_CLASS_COLORS[classToken]
+        if colors then return colors.r, colors.g, colors.b end
     end
     return 1, 1, 1
 end
