@@ -90,80 +90,63 @@ function BarSlot:UpdateHealth()
     -- Secret Values safety: check actual tracker values before arithmetic
     local canAccess = not _cav or (_cav(t.amount) and _cav(t.amountMax))
 
-    -- Calculate percent for bar fill
-    local healthPct
-    if canAccess then
-        local amountMax = t.amountMax
-        if amountMax <= 0 then amountMax = 1 end
-        healthPct = t.amount / amountMax
-    elseif UnitHealthPercent and CurveConstants then
-        -- IceHUD pattern: CurveConstants.ZeroToOne returns accessible 0-1 value
-        healthPct = UnitHealthPercent(self.unitId, true, CurveConstants.ZeroToOne)
+    if not canAccess then
+        -- Secret Values mode: use StatusBar rendering with curves (IceHUD pattern)
+        self:UpdateHealthSecret()
+        return
     end
-    if not healthPct then healthPct = 1 end
 
-    local sigHeight
+    -- Accessible values: full 5-layer rendering with animation
+    local amount = t.amount
+    local amountMax = t.amountMax
+    if amountMax <= 0 then amountMax = 1 end
+    local healthPct = amount / amountMax
 
-    if canAccess then
-        local amount = t.amount
-        local amountMax = t.amountMax
-        if amountMax <= 0 then amountMax = 1 end
+    local absorbed = Settings:Get("showHealthHealAbsorb") and _safe(t.amountHealAbsorb) or 0
+    local reduced = Settings:Get("showHealthReduce") and _safe(t.amountMaxHealthReduce) or 0
+    local shield = Settings:Get("showHealthShield") and _safe(t.amountExtra) or 0
+    local heal = Settings:Get("showHealthHealIncoming") and _safe(t.amountHealIncoming) or 0
 
-        local absorbed = Settings:Get("showHealthHealAbsorb") and _safe(t.amountHealAbsorb) or 0
-        local reduced = Settings:Get("showHealthReduce") and _safe(t.amountMaxHealthReduce) or 0
-        local shield = Settings:Get("showHealthShield") and _safe(t.amountExtra) or 0
-        local heal = Settings:Get("showHealthHealIncoming") and _safe(t.amountHealIncoming) or 0
+    if absorbed > amount then absorbed = amount end
+    local amountNonAbsorbed = amount - absorbed
 
-        if absorbed > amount then absorbed = amount end
-        local amountNonAbsorbed = amount - absorbed
+    if heal + amount > amountMax then
+        heal = amountMax - amount
+        if heal < 0 then heal = 0 end
+    end
 
-        if heal + amount > amountMax then
-            heal = amountMax - amount
-            if heal < 0 then heal = 0 end
-        end
-
-        local amountTotalPlusShield = amountMax
-        local shieldMax = _safe(t.amountExtraMax, shield)
-        if amount + shieldMax > amountMax then
-            amountTotalPlusShield = amount + shieldMax
-            if not Settings:Get("showHealthShieldOverMax") then
-                if amount <= amountMax * 0.95 then
-                    amountTotalPlusShield = amountMax
-                else
-                    amountTotalPlusShield = math.min(amountTotalPlusShield, amount + amountMax * 0.05)
-                end
+    local amountTotalPlusShield = amountMax
+    local shieldMax = _safe(t.amountExtraMax, shield)
+    if amount + shieldMax > amountMax then
+        amountTotalPlusShield = amount + shieldMax
+        if not Settings:Get("showHealthShieldOverMax") then
+            if amount <= amountMax * 0.95 then
+                amountTotalPlusShield = amountMax
+            else
+                amountTotalPlusShield = math.min(amountTotalPlusShield, amount + amountMax * 0.05)
             end
         end
-
-        if shield + amount > amountTotalPlusShield then
-            shield = amountTotalPlusShield - amount
-            if shield < 0 then shield = 0 end
-        end
-
-        if amountTotalPlusShield <= 0 then amountTotalPlusShield = 1 end
-
-        self.valuesInfo[1] = VT_HEALTH
-        self.valuesInfo[2] = VT_ABSORB
-        self.valuesInfo[3] = VT_REDUCE
-        self.valuesInfo[4] = VT_SHIELD
-        self.valuesInfo[5] = VT_HEAL
-        self.valuesHeight[1] = amountNonAbsorbed / amountTotalPlusShield
-        self.valuesHeight[2] = absorbed / amountTotalPlusShield
-        self.valuesHeight[3] = reduced / amountTotalPlusShield
-        self.valuesHeight[4] = shield / amountTotalPlusShield
-        self.valuesHeight[5] = heal / amountTotalPlusShield
-
-        sigHeight = amountMax / amountTotalPlusShield
-    else
-        -- Secret Values fallback: use percent API, no extra layers
-        self.valuesInfo[1] = VT_HEALTH
-        self.valuesHeight[1] = healthPct
-        for i = 2, 5 do
-            self.valuesInfo[i] = 0
-            self.valuesHeight[i] = 0
-        end
-        sigHeight = 1
     end
+
+    if shield + amount > amountTotalPlusShield then
+        shield = amountTotalPlusShield - amount
+        if shield < 0 then shield = 0 end
+    end
+
+    if amountTotalPlusShield <= 0 then amountTotalPlusShield = 1 end
+
+    self.valuesInfo[1] = VT_HEALTH
+    self.valuesInfo[2] = VT_ABSORB
+    self.valuesInfo[3] = VT_REDUCE
+    self.valuesInfo[4] = VT_SHIELD
+    self.valuesInfo[5] = VT_HEAL
+    self.valuesHeight[1] = amountNonAbsorbed / amountTotalPlusShield
+    self.valuesHeight[2] = absorbed / amountTotalPlusShield
+    self.valuesHeight[3] = reduced / amountTotalPlusShield
+    self.valuesHeight[4] = shield / amountTotalPlusShield
+    self.valuesHeight[5] = heal / amountTotalPlusShield
+
+    local sigHeight = amountMax / amountTotalPlusShield
     local unitId = self.unitId
     local noCreditForKill = t.noCreditForKill
 
@@ -196,7 +179,39 @@ function BarSlot:UpdateHealth()
         return 1, 1, 1
     end)
 
-    -- Update text (Secret Value safe via string.format)
+    -- Update text
+    if self.textField then
+        self.textField:DSetText(TextFormat:FormatHealthTextBySetting(t))
+    end
+end
+
+-- Secret Values health rendering: StatusBar + C_CurveUtil curves (IceHUD pattern)
+function BarSlot:UpdateHealthSecret()
+    local t = self.tracker
+    local r = self.renderer
+
+    -- Get fill value via renderer's fill curve (accounts for texture margins)
+    local fillValue
+    if r.fillCurve and UnitHealthPercent then
+        fillValue = UnitHealthPercent(self.unitId, true, r.fillCurve)
+    end
+
+    -- Get health gradient color via color curves (IceHUD pattern)
+    local cr, cg, cb = 0, 1, 0 -- default green
+    if r.hpColorCurveR and UnitHealthPercent then
+        cr = UnitHealthPercent(self.unitId, true, r.hpColorCurveR) or 0
+        cg = UnitHealthPercent(self.unitId, true, r.hpColorCurveG) or 0
+        cb = 0
+    end
+
+    -- Tapped (no credit) coloring
+    if t.noCreditForKill then
+        cr, cg, cb = Colorize:GetHealthLayerColor("notTapped", self.unitId)
+    end
+
+    r:UpdateBarSecret(fillValue, cr, cg, cb)
+
+    -- Update text
     if self.textField then
         self.textField:DSetText(TextFormat:FormatHealthTextBySetting(t))
     end
@@ -207,41 +222,36 @@ function BarSlot:UpdatePower()
     local _cav = canaccessvalue
     local canAccess = not _cav or (_cav(t.amount) and _cav(t.amountMax))
 
-    if canAccess then
-        local amountMax = t.amountMax
-        local amountMin = t.amountMin
-        local amount = t.amount
-        local range = amountMax - amountMin
-        if range <= 0 then range = 1 end
+    if not canAccess then
+        -- Secret Values mode: use StatusBar rendering
+        self:UpdatePowerSecret()
+        return
+    end
 
-        if amountMin == 0 then
-            self.valuesInfo[1] = VT_POWER_EMPTY
-            self.valuesInfo[2] = VT_POWER
-            self.valuesHeight[1] = 0
-            self.valuesHeight[2] = amount / range
-        else
-            if amount >= 0 then
-                self.valuesInfo[1] = VT_POWER_EMPTY
-                self.valuesInfo[2] = VT_POWER
-                self.valuesHeight[1] = -amountMin / range
-                self.valuesHeight[2] = amount / range
-            else
-                self.valuesInfo[1] = VT_POWER
-                self.valuesInfo[2] = VT_POWER_EMPTY
-                self.valuesHeight[1] = (amount - amountMin) / range
-                self.valuesHeight[2] = -amount / range
-            end
-        end
-    else
-        -- Secret Values fallback: IceHUD pattern with 4 args
-        local pct = 0
-        if UnitPowerPercent and CurveConstants then
-            pct = UnitPowerPercent(self.unitId, t.resourceType, true, CurveConstants.ZeroToOne) or 0
-        end
+    -- Accessible values: standard rendering
+    local amountMax = t.amountMax
+    local amountMin = t.amountMin
+    local amount = t.amount
+    local range = amountMax - amountMin
+    if range <= 0 then range = 1 end
+
+    if amountMin == 0 then
         self.valuesInfo[1] = VT_POWER_EMPTY
         self.valuesInfo[2] = VT_POWER
         self.valuesHeight[1] = 0
-        self.valuesHeight[2] = pct
+        self.valuesHeight[2] = amount / range
+    else
+        if amount >= 0 then
+            self.valuesInfo[1] = VT_POWER_EMPTY
+            self.valuesInfo[2] = VT_POWER
+            self.valuesHeight[1] = -amountMin / range
+            self.valuesHeight[2] = amount / range
+        else
+            self.valuesInfo[1] = VT_POWER
+            self.valuesInfo[2] = VT_POWER_EMPTY
+            self.valuesHeight[1] = (amount - amountMin) / range
+            self.valuesHeight[2] = -amount / range
+        end
     end
 
     -- Trim arrays to 2
@@ -258,6 +268,28 @@ function BarSlot:UpdatePower()
         return nil  -- invisible for empty segment
     end)
 
+    if self.textField then
+        self.textField:DSetText(TextFormat:FormatPowerTextBySetting(t))
+    end
+end
+
+-- Secret Values power rendering: StatusBar + C_CurveUtil curves (IceHUD pattern)
+function BarSlot:UpdatePowerSecret()
+    local t = self.tracker
+    local r = self.renderer
+
+    -- Get fill value via renderer's fill curve
+    local fillValue
+    if r.fillCurve and UnitPowerPercent then
+        fillValue = UnitPowerPercent(self.unitId, t.resourceType, true, r.fillCurve)
+    end
+
+    -- Power color doesn't depend on fill level, safe to use directly
+    local cr, cg, cb = Colorize:GetPowerColor(t.resourceType, self.unitId)
+
+    r:UpdateBarSecret(fillValue, cr, cg, cb)
+
+    -- Update text
     if self.textField then
         self.textField:DSetText(TextFormat:FormatPowerTextBySetting(t))
     end

@@ -39,12 +39,116 @@ function BarRenderer:New(group, clippingId, side)
     o.sigHeightTarget = 1
     o.animate = true
 
+    -- Secret value support: create StatusBar + fill curves (IceHUD pattern)
+    o.isSecretEnv = (issecretvalue ~= nil)
+    if o.isSecretEnv and C_CurveUtil then
+        -- Fill curve: maps health/power 0-1 to StatusBar value accounting for texture margins
+        o.fillCurve = C_CurveUtil.CreateCurve()
+        o.fillCurve:SetType(Enum.LuaCurveType.Linear)
+        o.fillCurve:ClearPoints()
+        o.fillCurve:AddPoint(0, o.fromBotPct)
+        o.fillCurve:AddPoint(1, 1 - o.fromTopPct)
+
+        -- Health color curves (IceHUD pattern: R/G/B via UnitHealthPercent)
+        -- Red: 1 at 0% → 1 at 50% → 0 at 100%
+        o.hpColorCurveR = C_CurveUtil.CreateCurve()
+        o.hpColorCurveR:SetType(Enum.LuaCurveType.Linear)
+        o.hpColorCurveR:ClearPoints()
+        o.hpColorCurveR:AddPoint(0, 1)
+        o.hpColorCurveR:AddPoint(0.5, 1)
+        o.hpColorCurveR:AddPoint(1, 0)
+
+        -- Green: 0 at 0% → 1 at 50% → 1 at 100%
+        o.hpColorCurveG = C_CurveUtil.CreateCurve()
+        o.hpColorCurveG:SetType(Enum.LuaCurveType.Linear)
+        o.hpColorCurveG:ClearPoints()
+        o.hpColorCurveG:AddPoint(0, 0)
+        o.hpColorCurveG:AddPoint(0.5, 1)
+        o.hpColorCurveG:AddPoint(1, 1)
+    end
+
     return o
 end
 
 function BarRenderer:SetParentFrame(parentFrame)
     self.parentFrame = parentFrame
 end
+
+-- Lazily create StatusBar overlay on group[1] for secret value rendering
+function BarRenderer:EnsureStatusBar()
+    if self.statusBar then return self.statusBar end
+
+    local frame = self.group[1]
+    if not frame then return nil end
+
+    local sb = CreateFrame("StatusBar", nil, frame)
+    sb:SetAllPoints(frame)
+    sb:SetMinMaxValues(0, 1)
+    sb:SetOrientation("VERTICAL")
+    sb:SetFillStyle("STANDARD")
+    sb:SetFrameLevel(frame:GetFrameLevel() + 1)
+
+    -- Use the same bar texture
+    local tex = sb:CreateTexture(nil, "ARTWORK")
+    local style = ns.Settings:Get("barsTexture") or 1
+    local pathPrefix = frame.texture and frame.texture.pathPrefix
+    if pathPrefix then
+        local path = ns.FrameFactory.ResolvePath(pathPrefix .. tostring(style))
+        tex:SetTexture(path)
+    end
+    if not tex:GetTexture() then
+        tex:SetTexture("Interface\\Buttons\\WHITE8X8")
+    end
+    sb:SetStatusBarTexture(tex)
+
+    -- Mirror for right side via tex coords (StatusBar respects initial X coords)
+    if self.side == "right" then
+        tex:SetTexCoord(1, 0, 0, 1)
+    end
+
+    sb.barTexture = tex
+    self.statusBar = sb
+    return sb
+end
+
+-- Secret value rendering: pass fill value directly to StatusBar (IceHUD pattern)
+function BarRenderer:UpdateBarSecret(fillValue, r, g, b)
+    local sb = self:EnsureStatusBar()
+    if not sb then return end
+
+    -- Show the group frame
+    self.group:SetFramesShown(1)
+    sb:Show()
+
+    -- Hide original texture so StatusBar is visible
+    local frame = self.group[1]
+    if frame and frame.texture then
+        frame.texture:SetAlpha(0)
+    end
+
+    -- Set fill (secret value goes directly to SetValue - WoW engine handles it)
+    if fillValue then
+        sb:SetValue(fillValue)
+    else
+        sb:SetValue(0)
+    end
+
+    -- Set color
+    if r then
+        sb:SetStatusBarColor(r, g, b)
+    end
+end
+
+function BarRenderer:HideBar()
+    self.isAnimating = false
+    self:SetUpdatesRequired(false)
+    self.group:SetFramesShown(0)
+    if self.statusBar then
+        self.statusBar:Hide()
+    end
+end
+
+-- Standard (non-secret) rendering below --
 
 function BarRenderer:UpdateSegment(index, heightBegin, heightEnd, r, g, b)
     local frame = self.group[index]
@@ -92,12 +196,6 @@ function BarRenderer:UpdateBar(valuesInfo, valuesHeight, heightSignificant, colo
     self.isAnimating = true
     self:SetUpdatesRequired(true)
     self:OnUpdateTime()
-end
-
-function BarRenderer:HideBar()
-    self.isAnimating = false
-    self:SetUpdatesRequired(false)
-    self.group:SetFramesShown(0)
 end
 
 function BarRenderer:ForceInstant()
