@@ -1,0 +1,27 @@
+# Claude Code local settings
+.claude/
+
+# Original DHUD source (reference only, not for distribution)
+DHUD/
+DHUD_Options/
+
+# Development tools & references
+ice-hud/
+tools/
+
+# Project management (local only)
+AGENTS.md
+CLAUDE.md
+DHUDLITE/README.md
+DHUDLITE/docs/
+
+# OS generated
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor/IDE
+*.swp
+*~
+.vscode/
+.idea/
